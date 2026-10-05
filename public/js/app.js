@@ -3,6 +3,40 @@
  * Manages Faculty Auth (Sign In / Sign Up), views, live clock
  */
 
+// Global fail-safe tab switcher
+window.switchAuthTab = function (mode) {
+    const tabSignin = document.getElementById('tab-btn-signin');
+    const tabSignup = document.getElementById('tab-btn-signup');
+    const formSignin = document.getElementById('form-faculty-login');
+    const formSignup = document.getElementById('form-faculty-signup');
+
+    if (mode === 'signup') {
+        if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+        if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
+
+        if (formSignup) {
+            formSignup.classList.remove('hidden');
+            formSignup.style.display = 'block';
+        }
+        if (formSignin) {
+            formSignin.classList.add('hidden');
+            formSignin.style.display = 'none';
+        }
+    } else {
+        if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+        if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
+
+        if (formSignin) {
+            formSignin.classList.remove('hidden');
+            formSignin.style.display = 'block';
+        }
+        if (formSignup) {
+            formSignup.classList.add('hidden');
+            formSignup.style.display = 'none';
+        }
+    }
+};
+
 const App = (function () {
     let currentAuthMode = 'signin'; // 'signin' or 'signup'
 
@@ -37,37 +71,7 @@ const App = (function () {
     }
 
     function switchTab(mode) {
-        currentAuthMode = mode;
-        const tabSignin = document.getElementById('tab-btn-signin');
-        const tabSignup = document.getElementById('tab-btn-signup');
-        const formSignin = document.getElementById('form-faculty-login');
-        const formSignup = document.getElementById('form-faculty-signup');
-
-        if (mode === 'signup') {
-            if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
-            if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
-
-            if (formSignup) {
-                formSignup.classList.remove('hidden');
-                formSignup.style.display = 'block';
-            }
-            if (formSignin) {
-                formSignin.classList.add('hidden');
-                formSignin.style.display = 'none';
-            }
-        } else {
-            if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
-            if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
-
-            if (formSignin) {
-                formSignin.classList.remove('hidden');
-                formSignin.style.display = 'block';
-            }
-            if (formSignup) {
-                formSignup.classList.add('hidden');
-                formSignup.style.display = 'none';
-            }
-        }
+        window.switchAuthTab(mode);
     }
 
     function setupAuthTabs() {

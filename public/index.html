@@ -82,16 +82,16 @@
 
                 <!-- Auth Mode Tabs (Sign In vs Sign Up) -->
                 <div class="flex p-1 bg-slate-100 rounded-xl mb-6 border border-slate-200/60">
-                    <button id="tab-btn-signin" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer">
+                    <button id="tab-btn-signin" onclick="switchAuthTab('signin')" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer">
                         Faculty Sign In
                     </button>
-                    <button id="tab-btn-signup" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer">
+                    <button id="tab-btn-signup" onclick="switchAuthTab('signup')" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer">
                         Faculty Sign Up
                     </button>
                 </div>
 
                 <!-- 1. FACULTY SIGN IN FORM -->
-                <form id="form-faculty-login" class="space-y-4">
+                <form id="form-faculty-login" class="space-y-4" style="display: block;">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Official Email</label>
                         <input id="faculty-email" type="email" required placeholder="e.g. dr.sharma@apex.edu"
@@ -131,7 +131,7 @@
 
                     <p class="text-center text-xs text-slate-500 mt-4">
                         Don't have an account?
-                        <button type="button" onclick="document.getElementById('tab-btn-signup').click()" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign Up here</button>
+                        <button type="button" onclick="switchAuthTab('signup')" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign Up here</button>
                     </p>
                 </form>
 
@@ -194,7 +194,7 @@
 
                     <p class="text-center text-xs text-slate-500 mt-4">
                         Already have an account?
-                        <button type="button" onclick="document.getElementById('tab-btn-signin').click()" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign In here</button>
+                        <button type="button" onclick="switchAuthTab('signin')" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign In here</button>
                     </p>
                 </form>
             </div>
