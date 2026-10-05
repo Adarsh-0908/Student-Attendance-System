@@ -1,48 +1,12 @@
 /**
- * College Attendance Management System - Faculty Portal App Controller
- * Manages Faculty Auth (Sign In / Sign Up), views, live clock
+ * College Attendance Management System - Main App Controller
+ * Manages Auth (Sign In / Sign Up for Faculty & Students), views, live clock
  */
 
-// Global fail-safe tab switcher
-window.switchAuthTab = function (mode) {
-    const tabSignin = document.getElementById('tab-btn-signin');
-    const tabSignup = document.getElementById('tab-btn-signup');
-    const formSignin = document.getElementById('form-faculty-login');
-    const formSignup = document.getElementById('form-faculty-signup');
-
-    if (mode === 'signup') {
-        if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
-        if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
-
-        if (formSignup) {
-            formSignup.classList.remove('hidden');
-            formSignup.style.display = 'block';
-        }
-        if (formSignin) {
-            formSignin.classList.add('hidden');
-            formSignin.style.display = 'none';
-        }
-    } else {
-        if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
-        if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
-
-        if (formSignin) {
-            formSignin.classList.remove('hidden');
-            formSignin.style.display = 'block';
-        }
-        if (formSignup) {
-            formSignup.classList.add('hidden');
-            formSignup.style.display = 'none';
-        }
-    }
-};
-
 const App = (function () {
-    let currentAuthMode = 'signin'; // 'signin' or 'signup'
 
     function init() {
         setupClock();
-        setupAuthTabs();
         setupForms();
         checkSession();
     }
@@ -71,33 +35,18 @@ const App = (function () {
     }
 
     function switchTab(mode) {
-        window.switchAuthTab(mode);
+        if (window.switchAuthTab) window.switchAuthTab(mode);
     }
 
-    function setupAuthTabs() {
-        const tabSignin = document.getElementById('tab-btn-signin');
-        const tabSignup = document.getElementById('tab-btn-signup');
-
-        if (tabSignin) {
-            tabSignin.onclick = (e) => {
-                if (e) e.preventDefault();
-                switchTab('signin');
-            };
-        }
-
-        if (tabSignup) {
-            tabSignup.onclick = (e) => {
-                if (e) e.preventDefault();
-                switchTab('signup');
-            };
-        }
+    function switchRole(role) {
+        if (window.switchAuthRole) window.switchAuthRole(role);
     }
 
     function setupForms() {
-        // Faculty Sign In Form
-        const formSignin = document.getElementById('form-faculty-login');
-        if (formSignin) {
-            formSignin.onsubmit = async (e) => {
+        // 1. Faculty Sign In Form
+        const formFacLogin = document.getElementById('form-faculty-login');
+        if (formFacLogin) {
+            formFacLogin.onsubmit = async (e) => {
                 e.preventDefault();
                 const emailEl = document.getElementById('faculty-email');
                 const deptEl = document.getElementById('faculty-dept');
@@ -107,7 +56,7 @@ const App = (function () {
                 const department = deptEl ? deptEl.value : '';
                 const password = passEl ? passEl.value : '';
 
-                const submitBtn = formSignin.querySelector('button[type="submit"]');
+                const submitBtn = formFacLogin.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.textContent = 'Authenticating...';
@@ -131,7 +80,7 @@ const App = (function () {
                     showProfessorView();
                 } catch (err) {
                     console.error('Faculty login error:', err);
-                    toast.error('Network error during login.');
+                    toast.error('Network error during faculty login.');
                 } finally {
                     if (submitBtn) {
                         submitBtn.disabled = false;
@@ -141,10 +90,10 @@ const App = (function () {
             };
         }
 
-        // Faculty Sign Up Form
-        const formSignup = document.getElementById('form-faculty-signup');
-        if (formSignup) {
-            formSignup.onsubmit = async (e) => {
+        // 2. Faculty Sign Up Form
+        const formFacSignup = document.getElementById('form-faculty-signup');
+        if (formFacSignup) {
+            formFacSignup.onsubmit = async (e) => {
                 e.preventDefault();
                 const nameEl = document.getElementById('signup-name');
                 const emailEl = document.getElementById('signup-email');
@@ -155,7 +104,7 @@ const App = (function () {
 
                 const name = nameEl ? nameEl.value : '';
                 const email = emailEl ? emailEl.value : '';
-                const department = deptEl ? deptEl.value : '';
+                const department = deptEl ? deptEl.value : 'Computer Engineering';
                 const sub_branch = (subBranchEl ? subBranchEl.value : '') || 'A';
                 const designation = (desigEl ? desigEl.value : '') || 'Professor';
                 const password = passEl ? passEl.value : '';
@@ -165,7 +114,7 @@ const App = (function () {
                     return;
                 }
 
-                const submitBtn = formSignup.querySelector('button[type="submit"]');
+                const submitBtn = formFacSignup.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.textContent = 'Creating Account...';
@@ -189,11 +138,127 @@ const App = (function () {
                     showProfessorView();
                 } catch (err) {
                     console.error('Faculty signup error:', err);
-                    toast.error('Network error during registration.');
+                    toast.error('Network error during faculty registration.');
                 } finally {
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Register Faculty Account';
+                    }
+                }
+            };
+        }
+
+        // 3. Student Sign In Form
+        const formStuLogin = document.getElementById('form-student-login');
+        if (formStuLogin) {
+            formStuLogin.onsubmit = async (e) => {
+                e.preventDefault();
+                const rollEl = document.getElementById('student-roll');
+                const branchEl = document.getElementById('student-branch');
+                const semEl = document.getElementById('student-sem');
+                const passEl = document.getElementById('student-password');
+
+                const roll_no = rollEl ? rollEl.value : '';
+                const branch = branchEl ? branchEl.value : '';
+                const semester = semEl ? semEl.value : '5';
+                const password = passEl ? passEl.value : '';
+
+                if (!roll_no || !branch || !semester || !password) {
+                    toast.error('All student login fields are required.');
+                    return;
+                }
+
+                const submitBtn = formStuLogin.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Authenticating...';
+                }
+
+                try {
+                    const res = await fetch('/api/auth/student-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roll_no, branch, semester, password })
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        toast.error(data.error || 'Student authentication failed.');
+                        return;
+                    }
+
+                    localStorage.setItem('attendance_user', JSON.stringify(data));
+                    toast.success(`Welcome back, ${data.student.name}`, 'Student Authenticated');
+                    showStudentView();
+                } catch (err) {
+                    console.error('Student login error:', err);
+                    toast.error('Network error during student login.');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Sign In to Student Portal';
+                    }
+                }
+            };
+        }
+
+        // 4. Student Sign Up Form
+        const formStuSignup = document.getElementById('form-student-signup');
+        if (formStuSignup) {
+            formStuSignup.onsubmit = async (e) => {
+                e.preventDefault();
+                const nameEl = document.getElementById('student-signup-name');
+                const rollEl = document.getElementById('student-signup-roll');
+                const enrollEl = document.getElementById('student-signup-enroll');
+                const branchEl = document.getElementById('student-signup-branch');
+                const semEl = document.getElementById('student-signup-sem');
+                const secEl = document.getElementById('student-signup-section');
+                const dobEl = document.getElementById('student-signup-dob');
+                const passEl = document.getElementById('student-signup-password');
+
+                const name = nameEl ? nameEl.value : '';
+                const roll_no = rollEl ? rollEl.value : '';
+                const enrollment_no = (enrollEl ? enrollEl.value : '') || ('ENR' + roll_no);
+                const branch = branchEl ? branchEl.value : 'Computer Engineering';
+                const semester = semEl ? semEl.value : '5';
+                const section = (secEl ? secEl.value : '') || 'A';
+                const dob = (dobEl ? dobEl.value : '') || '2004-01-01';
+                const password = passEl ? passEl.value : '';
+
+                if (!name || !roll_no || !branch || !semester || !password) {
+                    toast.error('Please fill in your name, roll no, branch, semester, and password.');
+                    return;
+                }
+
+                const submitBtn = formStuSignup.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Registering Student...';
+                }
+
+                try {
+                    const res = await fetch('/api/auth/student-signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, roll_no, enrollment_no, branch, semester, section, dob, password })
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        toast.error(data.error || 'Student registration failed.');
+                        return;
+                    }
+
+                    localStorage.setItem('attendance_user', JSON.stringify(data));
+                    toast.success(`Account created! Welcome, ${data.student.name}`, 'Registration Successful');
+                    showStudentView();
+                } catch (err) {
+                    console.error('Student signup error:', err);
+                    toast.error('Network error during student registration.');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Register Student Account';
                     }
                 }
             };
@@ -206,9 +271,22 @@ const App = (function () {
     }
 
     function checkSession() {
+        const path = (window.location.pathname || '').toLowerCase();
+        const hash = (window.location.hash || '').toLowerCase();
+        const search = (window.location.search || '').toLowerCase();
+
+        // If explicitly requested signup or register via URL, always show auth signup view
+        if (path.includes('signup') || path.includes('register') || hash.includes('signup') || hash.includes('register') || search.includes('signup')) {
+            showLogin();
+            if (window.switchAuthTab) window.switchAuthTab('signup');
+            return;
+        }
+
         const session = JSON.parse(localStorage.getItem('attendance_user') || 'null');
         if (session && session.userType === 'faculty' && session.faculty) {
             showProfessorView();
+        } else if (session && session.userType === 'student' && session.student) {
+            showStudentView();
         } else {
             showLogin();
         }
@@ -225,10 +303,19 @@ const App = (function () {
             profView.classList.add('hidden');
             profView.style.display = 'none';
         }
+        const studentView = document.getElementById('student-view');
+        if (studentView) {
+            studentView.classList.add('hidden');
+            studentView.style.display = 'none';
+        }
         const navProfile = document.getElementById('nav-user-profile');
         if (navProfile) {
             navProfile.classList.add('hidden');
             navProfile.style.display = 'none';
+        }
+
+        if (window.updateAuthDisplay) {
+            window.updateAuthDisplay();
         }
     }
 
@@ -244,6 +331,11 @@ const App = (function () {
             authView.classList.add('hidden');
             authView.style.display = 'none';
         }
+        const studentView = document.getElementById('student-view');
+        if (studentView) {
+            studentView.classList.add('hidden');
+            studentView.style.display = 'none';
+        }
         const profView = document.getElementById('professor-view');
         if (profView) {
             profView.classList.remove('hidden');
@@ -256,6 +348,11 @@ const App = (function () {
         }
 
         const faculty = session.faculty;
+        const navName = document.getElementById('nav-user-name');
+        if (navName) navName.textContent = faculty.name;
+        const navRole = document.getElementById('nav-user-role');
+        if (navRole) navRole.textContent = faculty.designation || 'Faculty';
+
         const nameEl = document.getElementById('prof-header-name');
         if (nameEl) nameEl.textContent = faculty.name;
 
@@ -281,6 +378,45 @@ const App = (function () {
         }
     }
 
+    function showStudentView() {
+        const session = JSON.parse(localStorage.getItem('attendance_user') || 'null');
+        if (!session || !session.student) {
+            showLogin();
+            return;
+        }
+
+        const authView = document.getElementById('auth-view');
+        if (authView) {
+            authView.classList.add('hidden');
+            authView.style.display = 'none';
+        }
+        const profView = document.getElementById('professor-view');
+        if (profView) {
+            profView.classList.add('hidden');
+            profView.style.display = 'none';
+        }
+        const studentView = document.getElementById('student-view');
+        if (studentView) {
+            studentView.classList.remove('hidden');
+            studentView.style.display = 'block';
+        }
+        const navProfile = document.getElementById('nav-user-profile');
+        if (navProfile) {
+            navProfile.classList.remove('hidden');
+            navProfile.style.display = 'flex';
+        }
+
+        const student = session.student;
+        const navName = document.getElementById('nav-user-name');
+        if (navName) navName.textContent = student.name;
+        const navRole = document.getElementById('nav-user-role');
+        if (navRole) navRole.textContent = `Student • Roll ${student.roll_no}`;
+
+        if (window.StudentApp && window.StudentApp.loadDashboard) {
+            window.StudentApp.loadDashboard();
+        }
+    }
+
     function handleLogout() {
         localStorage.removeItem('attendance_user');
         toast.info('You have been signed out.');
@@ -290,12 +426,14 @@ const App = (function () {
     return {
         init,
         switchTab,
+        switchRole,
         showLogin,
-        showProfessorView
+        showProfessorView,
+        showStudentView
     };
 })();
 
-// Immediate initialization if DOM is already ready, or on DOMContentLoaded
+// Immediate initialization if DOM is ready, or on DOMContentLoaded
 if (document.readyState === 'interactive' || document.readyState === 'complete') {
     App.init();
 } else {

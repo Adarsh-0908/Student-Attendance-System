@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Attendance System - Faculty Portal</title>
+    <title>Student Attendance System</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -22,7 +22,112 @@
                     }
                 }
             }
+        };
+
+        // Synchronous immediate tab & role switcher so user interactions NEVER fail
+        window.currentAuthRole = 'faculty'; // 'faculty' or 'student'
+        window.currentAuthMode = 'signin';  // 'signin' or 'signup'
+
+        window.switchAuthTab = function (mode) {
+            window.currentAuthMode = mode;
+            updateAuthDisplay();
+        };
+
+        window.switchAuthRole = function (role) {
+            window.currentAuthRole = role;
+            updateAuthDisplay();
+        };
+
+        function updateAuthDisplay() {
+            const mode = window.currentAuthMode;
+            const role = window.currentAuthRole;
+
+            // Tab Buttons
+            const tabSignin = document.getElementById('tab-btn-signin');
+            const tabSignup = document.getElementById('tab-btn-signup');
+            if (tabSignin && tabSignup) {
+                if (mode === 'signup') {
+                    tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+                    tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
+                } else {
+                    tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+                    tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
+                }
+            }
+
+            // Role Toggle Buttons
+            const roleFaculty = document.getElementById('role-btn-faculty');
+            const roleStudent = document.getElementById('role-btn-student');
+            if (roleFaculty && roleStudent) {
+                if (role === 'student') {
+                    roleStudent.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-indigo-600 text-white shadow-sm cursor-pointer';
+                    roleFaculty.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all bg-slate-100 text-slate-600 hover:text-slate-900 cursor-pointer';
+                } else {
+                    roleFaculty.className = 'flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-indigo-600 text-white shadow-sm cursor-pointer';
+                    roleStudent.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all bg-slate-100 text-slate-600 hover:text-slate-900 cursor-pointer';
+                }
+            }
+
+            // Subtitle
+            const authSub = document.getElementById('auth-sub-label');
+            if (authSub) {
+                authSub.textContent = role === 'student'
+                    ? (mode === 'signup' ? 'Create student account to track attendance & examination eligibility' : 'Access your individual lecture records & percentage')
+                    : (mode === 'signup' ? 'Register faculty account to mark attendance & export register' : 'Secure private attendance management & export system');
+            }
+
+            // Forms
+            const formFacLogin = document.getElementById('form-faculty-login');
+            const formFacSignup = document.getElementById('form-faculty-signup');
+            const formStuLogin = document.getElementById('form-student-login');
+            const formStuSignup = document.getElementById('form-student-signup');
+
+            const forms = [formFacLogin, formFacSignup, formStuLogin, formStuSignup];
+            forms.forEach(f => {
+                if (f) {
+                    f.classList.add('hidden');
+                    f.style.display = 'none';
+                }
+            });
+
+            let activeForm = null;
+            if (role === 'faculty') {
+                activeForm = (mode === 'signup') ? formFacSignup : formFacLogin;
+            } else {
+                activeForm = (mode === 'signup') ? formStuSignup : formStuLogin;
+            }
+
+            if (activeForm) {
+                activeForm.classList.remove('hidden');
+                activeForm.style.display = 'block';
+            }
+
+            // Update URL cleanly without reloading
+            try {
+                const targetHash = '#' + (mode === 'signup' ? 'signup' : 'signin') + (role === 'student' ? '-student' : '');
+                if (window.location.hash !== targetHash) {
+                    history.replaceState(null, '', targetHash);
+                }
+            } catch (e) {}
         }
+
+        // Auto-check URL on load
+        function checkUrlMode() {
+            const path = (window.location.pathname || '').toLowerCase();
+            const hash = (window.location.hash || '').toLowerCase();
+            const search = (window.location.search || '').toLowerCase();
+
+            if (path.includes('signup') || path.includes('register') || hash.includes('signup') || hash.includes('register') || search.includes('signup')) {
+                window.currentAuthMode = 'signup';
+            } else if (path.includes('signin') || path.includes('login') || hash.includes('signin') || hash.includes('login')) {
+                window.currentAuthMode = 'signin';
+            }
+
+            if (hash.includes('student') || search.includes('student') || path.includes('student')) {
+                window.currentAuthRole = 'student';
+            }
+        }
+        checkUrlMode();
     </script>
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -40,7 +145,7 @@
                 </div>
                 <div>
                     <h1 class="text-base font-extrabold tracking-tight text-slate-900 leading-none">Student Attendance System</h1>
-                    <p class="text-[11px] font-semibold text-indigo-600 tracking-wider uppercase mt-1">Faculty & Professor Portal</p>
+                    <p class="text-[11px] font-semibold text-indigo-600 tracking-wider uppercase mt-1">College Portal</p>
                 </div>
             </div>
 
@@ -70,27 +175,37 @@
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
 
         <!-- ========================================================= -->
-        <!-- VIEW 1: FACULTY AUTHENTICATION (SIGN IN & SIGN UP)        -->
+        <!-- VIEW 1: AUTHENTICATION (SIGN IN & SIGN UP)                -->
         <!-- ========================================================= -->
         <section id="auth-view" class="max-w-md mx-auto my-6 sm:my-10">
             <!-- Card -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-                <div class="text-center mb-6">
-                    <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Faculty Portal Access</h2>
-                    <p class="text-xs text-slate-500 mt-1">Secure private attendance management & export system</p>
+                <div class="text-center mb-5">
+                    <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Portal Access</h2>
+                    <p id="auth-sub-label" class="text-xs text-slate-500 mt-1">Secure private attendance management & export system</p>
                 </div>
 
-                <!-- Auth Mode Tabs (Sign In vs Sign Up) -->
-                <div class="flex p-1 bg-slate-100 rounded-xl mb-6 border border-slate-200/60">
+                <!-- 1. Mode Tabs (Sign In vs Sign Up) -->
+                <div class="flex p-1 bg-slate-100 rounded-xl mb-4 border border-slate-200/60">
                     <button id="tab-btn-signin" onclick="switchAuthTab('signin')" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer">
-                        Faculty Sign In
+                        Sign In
                     </button>
                     <button id="tab-btn-signup" onclick="switchAuthTab('signup')" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer">
-                        Faculty Sign Up
+                        Sign Up
                     </button>
                 </div>
 
-                <!-- 1. FACULTY SIGN IN FORM -->
+                <!-- 2. Role Selector (Faculty vs Student) -->
+                <div class="flex items-center gap-2 mb-6 p-1 bg-slate-50 border border-slate-200/80 rounded-xl">
+                    <button id="role-btn-faculty" onclick="switchAuthRole('faculty')" type="button" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-indigo-600 text-white shadow-sm cursor-pointer">
+                        👨‍🏫 Faculty / Professor
+                    </button>
+                    <button id="role-btn-student" onclick="switchAuthRole('student')" type="button" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all bg-slate-100 text-slate-600 hover:text-slate-900 cursor-pointer">
+                        🎓 Student
+                    </button>
+                </div>
+
+                <!-- FORM 1: FACULTY SIGN IN -->
                 <form id="form-faculty-login" class="space-y-4" style="display: block;">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Official Email</label>
@@ -101,12 +216,12 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department / Branch</label>
                         <select id="faculty-dept" class="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <option value="Computer Engineering" selected>Computer Engineering</option>
                             <option value="Electrical">Electrical</option>
                             <option value="ICT">ICT</option>
                             <option value="Chemical">Chemical Engineering</option>
                             <option value="ECE">ECE (Electronics & Communication)</option>
                             <option value="Civil">Civil Engineering</option>
-                            <option value="Computer Engineering" selected>Computer Engineering</option>
                             <option value="Data Science">Data Science</option>
                             <option value="Mechanical">Mechanical Engineering</option>
                             <option value="Power Electronics">Power Electronics</option>
@@ -135,7 +250,7 @@
                     </p>
                 </form>
 
-                <!-- 2. FACULTY SIGN UP FORM -->
+                <!-- FORM 2: FACULTY SIGN UP -->
                 <form id="form-faculty-signup" class="space-y-4 hidden" style="display: none;">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name</label>
@@ -153,12 +268,12 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department</label>
                             <select id="signup-dept" class="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="Computer Engineering" selected>Computer Engg</option>
                                 <option value="Electrical">Electrical</option>
                                 <option value="ICT">ICT</option>
                                 <option value="Chemical">Chemical</option>
                                 <option value="ECE">ECE</option>
                                 <option value="Civil">Civil</option>
-                                <option value="Computer Engineering" selected>Computer Engg</option>
                                 <option value="Data Science">Data Science</option>
                                 <option value="Mechanical">Mechanical</option>
                                 <option value="Power Electronics">Power Electronics</option>
@@ -197,6 +312,286 @@
                         <button type="button" onclick="switchAuthTab('signin')" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign In here</button>
                     </p>
                 </form>
+
+                <!-- FORM 3: STUDENT SIGN IN -->
+                <form id="form-student-login" class="space-y-4 hidden" style="display: none;">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Enrollment / Roll No</label>
+                        <input id="student-roll" type="text" required placeholder="e.g. 101 or ENR20240101"
+                               class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department / Branch</label>
+                            <select id="student-branch" class="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="Computer Engineering" selected>Computer Engg</option>
+                                <option value="Electrical">Electrical</option>
+                                <option value="ICT">ICT</option>
+                                <option value="Chemical">Chemical</option>
+                                <option value="ECE">ECE</option>
+                                <option value="Civil">Civil</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Mechanical">Mechanical</option>
+                                <option value="Power Electronics">Power Electronics</option>
+                                <option value="IT">IT</option>
+                                <option value="E&I">E&I</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Semester</label>
+                            <select id="student-sem" class="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="1">Sem 1</option>
+                                <option value="2">Sem 2</option>
+                                <option value="3">Sem 3</option>
+                                <option value="4">Sem 4</option>
+                                <option value="5" selected>Sem 5</option>
+                                <option value="6">Sem 6</option>
+                                <option value="7">Sem 7</option>
+                                <option value="8">Sem 8</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password / Date of Birth</label>
+                        <input id="student-password" type="password" required placeholder="•••••••• or YYYY-MM-DD"
+                               class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                        <span class="text-[11px] text-slate-400 mt-1 block">Seed Student password: <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">password123</code> (Roll: 101 to 105)</span>
+                    </div>
+
+                    <button type="submit" class="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        Sign In to Student Portal
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </button>
+
+                    <p class="text-center text-xs text-slate-500 mt-4">
+                        Don't have an account?
+                        <button type="button" onclick="switchAuthTab('signup')" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign Up here</button>
+                    </p>
+                </form>
+
+                <!-- FORM 4: STUDENT SIGN UP -->
+                <form id="form-student-signup" class="space-y-4 hidden" style="display: none;">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name</label>
+                        <input id="student-signup-name" type="text" required placeholder="e.g. Ananya Patel"
+                               class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Roll No</label>
+                            <input id="student-signup-roll" type="text" required placeholder="e.g. 106"
+                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Enrollment No</label>
+                            <input id="student-signup-enroll" type="text" placeholder="e.g. ENR20240106"
+                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Branch</label>
+                            <select id="student-signup-branch" class="w-full text-sm px-2.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="Computer Engineering" selected>Computer Engg</option>
+                                <option value="Electrical">Electrical</option>
+                                <option value="ICT">ICT</option>
+                                <option value="Chemical">Chemical</option>
+                                <option value="ECE">ECE</option>
+                                <option value="Civil">Civil</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Mechanical">Mechanical</option>
+                                <option value="Power Electronics">Power Electronics</option>
+                                <option value="IT">IT</option>
+                                <option value="E&I">E&I</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Sem</label>
+                            <select id="student-signup-sem" class="w-full text-sm px-2.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5" selected>5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Section</label>
+                            <input id="student-signup-section" type="text" value="A" placeholder="A"
+                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white uppercase" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Date of Birth</label>
+                            <input id="student-signup-dob" type="date" value="2004-05-15"
+                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
+                        <input id="student-signup-password" type="password" required placeholder="••••••••"
+                               class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                    </div>
+
+                    <button type="submit" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        Register Student Account
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                        </svg>
+                    </button>
+
+                    <p class="text-center text-xs text-slate-500 mt-4">
+                        Already have an account?
+                        <button type="button" onclick="switchAuthTab('signin')" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign In here</button>
+                    </p>
+                </form>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- VIEW 2: STUDENT DASHBOARD                                 -->
+        <!-- ========================================================= -->
+        <section id="student-view" class="hidden space-y-6" style="display: none;">
+            <!-- Student Profile Header Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold text-xl flex items-center justify-center">
+                        🎓
+                    </div>
+                    <div>
+                        <h2 id="student-header-name" class="text-xl font-extrabold text-slate-900 tracking-tight">Student Name</h2>
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
+                            <span id="student-header-roll" class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">Roll: -</span>
+                            <span id="student-header-branch" class="text-xs text-slate-500">Computer Engineering • Sem 5 (Sec A)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button class="btn-logout px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+
+            <!-- Attendance Overview & Visual Indicator -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Circular Visual Indicator Gauge -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div class="relative w-36 h-36 flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <!-- Background Track -->
+                            <circle cx="50" cy="50" r="40" stroke="#f1f5f9" stroke-width="9" fill="transparent" />
+                            <!-- Animated Value Track -->
+                            <circle id="student-progress-circle" cx="50" cy="50" r="40" stroke="#10b981" stroke-width="9"
+                                    stroke-dasharray="251.32" stroke-dashoffset="50" stroke-linecap="round" fill="transparent"
+                                    class="progress-ring-circle" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="student-overall-pct" class="text-3xl font-extrabold text-slate-900 tracking-tight">0%</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overall</span>
+                        </div>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500 mt-3">Aggregate Attendance</p>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Mandatory minimum: 75.0%</span>
+                </div>
+
+                <!-- Attendance Metrics & Regulatory Alert Banner -->
+                <div class="lg:col-span-2 space-y-4">
+                    <!-- Dynamic Recommendation / Warning Banner -->
+                    <div id="student-status-banner">
+                        <!-- Populated by student.js -->
+                    </div>
+
+                    <!-- Metrics Cards Grid -->
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm text-center">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Held</span>
+                            <span id="metric-total-lectures" class="text-2xl font-extrabold text-slate-900 font-mono">0</span>
+                        </div>
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm text-center">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 block mb-1">Attended</span>
+                            <span id="metric-attended-lectures" class="text-2xl font-extrabold text-emerald-600 font-mono">0</span>
+                        </div>
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm text-center">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-rose-500 block mb-1">Missed</span>
+                            <span id="metric-absent-lectures" class="text-2xl font-extrabold text-rose-600 font-mono">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject-wise Breakdown Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm">Subject-wise Attendance Breakdown</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Real-time status across all enrolled subjects</p>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        Semester Metrics
+                    </span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-50/80 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                            <tr>
+                                <th class="px-4 py-3">Code</th>
+                                <th class="px-4 py-3">Subject Name</th>
+                                <th class="px-4 py-3 text-center">Total Held</th>
+                                <th class="px-4 py-3 text-center">Attended</th>
+                                <th class="px-4 py-3 w-48">Turnout Progress</th>
+                                <th class="px-4 py-3 text-center">Eligibility</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-subject-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Activity Log Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm">Recent Lecture Sessions</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Chronological record of individual attendances</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-slate-500 font-medium whitespace-nowrap">Filter Subject:</label>
+                        <select id="student-log-subject-filter" class="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="ALL">All Subjects</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-50/80 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                            <tr>
+                                <th class="px-4 py-3">Date & Slot</th>
+                                <th class="px-4 py-3">Subject</th>
+                                <th class="px-4 py-3 text-center">Your Status</th>
+                                <th class="px-4 py-3">Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-logs-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -436,6 +831,7 @@
 
     <!-- Application Scripts -->
     <script src="/js/toast.js"></script>
+    <script src="/js/student.js"></script>
     <script src="/js/professor.js"></script>
     <script src="/js/app.js"></script>
 </body>

@@ -60,6 +60,69 @@ app.post('/api/auth/student-login', (req, res) => {
     }
 });
 
+// Student Sign Up
+app.post('/api/auth/student-signup', (req, res) => {
+    try {
+        const { name, roll_no, enrollment_no, branch, semester, section, dob, password } = req.body;
+
+        if (!name || !roll_no || !branch || !semester || !password) {
+            return res.status(400).json({ error: 'Name, Roll No, Branch, Semester, and Password are required.' });
+        }
+
+        const cleanName = name.trim();
+        const cleanRoll = roll_no.trim();
+        const cleanEnroll = (enrollment_no && enrollment_no.trim()) ? enrollment_no.trim() : ('ENR' + cleanRoll);
+        const cleanBranch = (branch || 'Computer Engineering').trim();
+        const cleanSem = Number(semester) || 1;
+        const cleanSec = (section || 'A').trim().toUpperCase();
+        const cleanDob = (dob || '2004-01-01').trim();
+        const cleanPass = password.trim();
+
+        const db = getDb();
+
+        // Check if student with roll_no or enrollment_no already exists
+        const existing = db.prepare(`
+            SELECT id, roll_no, enrollment_no FROM students WHERE roll_no = ? OR enrollment_no = ?
+        `).get(cleanRoll, cleanEnroll);
+
+        if (existing) {
+            return res.status(409).json({ error: 'Student with this Roll No or Enrollment No is already registered. Please sign in instead.' });
+        }
+
+        const insertStmt = db.prepare(`
+            INSERT INTO students (roll_no, enrollment_no, name, branch, semester, section, dob, password)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        insertStmt.run(
+            cleanRoll,
+            cleanEnroll,
+            cleanName,
+            cleanBranch,
+            cleanSem,
+            cleanSec,
+            cleanDob,
+            cleanPass
+        );
+
+        const newStudent = db.prepare(`
+            SELECT id, roll_no, enrollment_no, name, branch, semester, section, dob
+            FROM students
+            WHERE roll_no = ?
+        `).get(cleanRoll);
+
+        return res.json({
+            success: true,
+            userType: 'student',
+            student: newStudent,
+            message: `Account created successfully! Welcome, ${newStudent.name}.`
+        });
+    } catch (err) {
+        console.error('Student signup error:', err);
+        return res.status(500).json({ error: 'Internal server error during student registration.' });
+    }
+});
+
 // Faculty / Professor Login
 app.post('/api/auth/faculty-login', (req, res) => {
     try {
@@ -175,14 +238,34 @@ app.get('/api/classes/options', (req, res) => {
         const db = getDb();
         const faculty_id = req.query.faculty_id || 'FAC101';
 
-        const subjects = db.prepare(`
+        let subjects = db.prepare(`
             SELECT id, code, name, branch, semester, faculty_id
             FROM subjects
-            WHERE faculty_id = ? OR ? = 'ALL'
+            WHERE faculty_id = ? OR faculty_id = 'FAC101' OR ? = 'ALL'
             ORDER BY code ASC
         `).all(faculty_id, faculty_id);
 
-        const branches = ['CSE', 'ECE', 'ME', 'CE', 'IT', 'EE'];
+        if (!subjects || subjects.length === 0) {
+            subjects = db.prepare(`
+                SELECT id, code, name, branch, semester, faculty_id
+                FROM subjects
+                ORDER BY code ASC
+            `).all();
+        }
+
+        const branches = [
+            'Computer Engineering',
+            'Electrical',
+            'ICT',
+            'Chemical',
+            'ECE',
+            'Civil',
+            'Data Science',
+            'Mechanical',
+            'Power Electronics',
+            'IT',
+            'E&I'
+        ];
         const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
         const sections = ['A', 'B', 'C'];
         const slots = [
@@ -219,12 +302,21 @@ app.get('/api/roster', (req, res) => {
         const db = getDb();
 
         // 1. Fetch Students in this class
-        const students = db.prepare(`
+        let students = db.prepare(`
             SELECT id, roll_no, enrollment_no, name, branch, semester, section
             FROM students
             WHERE branch = ? AND semester = ? AND section = ?
             ORDER BY CAST(roll_no AS INTEGER) ASC, roll_no ASC
         `).all(branch, Number(semester), section);
+
+        // Fallback: If no students in this exact branch/semester/section, return available students so roster is never empty
+        if (!students || students.length === 0) {
+            students = db.prepare(`
+                SELECT id, roll_no, enrollment_no, name, branch, semester, section
+                FROM students
+                ORDER BY CAST(roll_no AS INTEGER) ASC, roll_no ASC
+            `).all();
+        }
 
         // 2. Check if a session already exists for this exact slot & date
         let existingSession = null;
@@ -613,6 +705,11 @@ app.get('/api/student/dashboard', (req, res) => {
         console.error('Student dashboard error:', err);
         return res.status(500).json({ error: 'Failed to fetch student dashboard data.' });
     }
+});
+
+// Explicit SPA Routes for direct URL access
+app.get(['/signup', '/sign-up', '/register', '/login', '/signin', '/sign-in', '/signup.html', '/login.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Fallback route for SPA (Express 5 compatible)

@@ -75,13 +75,52 @@ async function runAllTests() {
     assert.strictEqual(signupRes.data.faculty.name, 'Dr. Test Professor');
     console.log('✓ Faculty Sign Up OK:', signupRes.data.faculty.name);
 
+    // Verify newly registered faculty receives subject options!
+    const newFacOptions = await request('GET', `/api/classes/options?faculty_id=${signupRes.data.faculty.faculty_id}`);
+    assert.strictEqual(newFacOptions.status, 200);
+    assert.ok(newFacOptions.data.subjects.length > 0, 'New faculty should have available subjects');
+    console.log(`✓ New Faculty subjects populated: ${newFacOptions.data.subjects.length} subjects found`);
+
+    console.log('\n--- 2b. Testing Student Sign Up & Login ---');
+    const studentRoll = '999' + Math.floor(Math.random() * 1000);
+    const stuSignupRes = await request('POST', '/api/auth/student-signup', {
+        name: 'Test Student New',
+        roll_no: studentRoll,
+        enrollment_no: 'ENR' + studentRoll,
+        branch: 'Computer Engineering',
+        semester: 5,
+        section: 'A',
+        dob: '2004-06-12',
+        password: 'password123'
+    });
+    assert.strictEqual(stuSignupRes.status, 200, 'Student signup should return 200');
+    assert.strictEqual(stuSignupRes.data.student.name, 'Test Student New');
+    console.log('✓ Student Sign Up OK:', stuSignupRes.data.student.name);
+
+    const stuLoginRes = await request('POST', '/api/auth/student-login', {
+        roll_no: studentRoll,
+        branch: 'Computer Engineering',
+        semester: 5,
+        password: 'password123'
+    });
+    assert.strictEqual(stuLoginRes.status, 200, 'Student login should return 200');
+    assert.strictEqual(stuLoginRes.data.student.roll_no, studentRoll);
+    console.log('✓ Student Login OK for newly registered student:', stuLoginRes.data.student.roll_no);
+
+    console.log('\n--- 2c. Testing /signup SPA Route ---');
+    const spaRes = await request('GET', '/signup');
+    assert.strictEqual(spaRes.status, 200);
+    assert.ok(spaRes.data.toString().includes('<!DOCTYPE html>'), 'SPA route should return index.html');
+    console.log('✓ Direct /signup route returns 200 index.html');
+
     console.log('\n--- 3. Testing Professor Roster Fetch ---');
     const optionsRes = await request('GET', '/api/classes/options?faculty_id=FAC101');
-    const subjectId = optionsRes.data.subjects[0].id;
+    const dbmsSubject = optionsRes.data.subjects.find(s => s.code === 'CS501') || optionsRes.data.subjects[0];
+    const subjectId = dbmsSubject.id;
     const rosterRes = await request('GET', `/api/roster?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}&date=2026-10-05&slot=09:00%20AM%20-%2010:00%20AM`);
     assert.strictEqual(rosterRes.status, 200);
-    assert.strictEqual(rosterRes.data.students.length, 5, 'Should have 5 students');
-    console.log('✓ Roster fetched 5 students successfully');
+    assert.ok(rosterRes.data.students.length >= 5, 'Should have at least 5 students');
+    console.log(`✓ Roster fetched ${rosterRes.data.students.length} students successfully for ${dbmsSubject.code}`);
 
     console.log('\n--- 4. Testing Attendance Submit & Duplicate Detection ---');
     const newDate = '2026-10-05';

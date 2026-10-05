@@ -41,7 +41,17 @@ function seedDatabase() {
         { code: 'CS501', name: 'Database Management Systems', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
         { code: 'CS502', name: 'Operating Systems', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
         { code: 'CS503', name: 'Computer Networks', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
-        { code: 'CS504', name: 'Design & Analysis of Algorithms', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' }
+        { code: 'CS504', name: 'Design & Analysis of Algorithms', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
+        { code: 'EE501', name: 'Power Systems Analysis', branch: 'Electrical', semester: 5, faculty_id: 'FAC101' },
+        { code: 'IT501', name: 'Web Technologies & Cloud Computing', branch: 'IT', semester: 5, faculty_id: 'FAC101' },
+        { code: 'ICT501', name: 'Communication Networks & Protocols', branch: 'ICT', semester: 5, faculty_id: 'FAC101' },
+        { code: 'EC501', name: 'Digital Signal Processing', branch: 'ECE', semester: 5, faculty_id: 'FAC101' },
+        { code: 'ME501', name: 'Thermodynamics & Fluid Mechanics', branch: 'Mechanical', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CE501', name: 'Structural Engineering & Analysis', branch: 'Civil', semester: 5, faculty_id: 'FAC101' },
+        { code: 'DS501', name: 'Machine Learning & Big Data', branch: 'Data Science', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CH501', name: 'Chemical Reaction Engineering', branch: 'Chemical', semester: 5, faculty_id: 'FAC101' },
+        { code: 'PE501', name: 'Power Semiconductor Drives', branch: 'Power Electronics', semester: 5, faculty_id: 'FAC101' },
+        { code: 'EI501', name: 'Transducers & Instrumentation', branch: 'E&I', semester: 5, faculty_id: 'FAC101' }
     ];
 
     for (const sub of subjects) {
