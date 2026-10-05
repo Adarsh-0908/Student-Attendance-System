@@ -1,10 +1,20 @@
-const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-// Path to SQLite database file
-// On Vercel / Serverless, the source directory is read-only.
-// We use /tmp/attendance.db on Vercel so SQLite can write.
+// Try loading native node:sqlite (Node 22+) or better-sqlite3 (Node 18/20/22/24)
+let DatabaseClass = null;
+
+try {
+    const { DatabaseSync } = require('node:sqlite');
+    DatabaseClass = DatabaseSync;
+} catch (e1) {
+    try {
+        DatabaseClass = require('better-sqlite3');
+    } catch (e2) {
+        console.error('Failed to load SQLite driver:', e1, e2);
+    }
+}
+
 const isVercel = Boolean(process.env.VERCEL);
 const DB_PATH = isVercel
     ? path.join('/tmp', 'attendance.db')
@@ -93,14 +103,22 @@ function getDb() {
             }
         }
 
-        dbInstance = new DatabaseSync(DB_PATH);
-
-        if (isVercel) {
-            dbInstance.exec('PRAGMA journal_mode = MEMORY;');
-        } else {
-            dbInstance.exec('PRAGMA journal_mode = WAL;');
+        if (!DatabaseClass) {
+            throw new Error('No SQLite driver available on this Node runtime.');
         }
-        dbInstance.exec('PRAGMA foreign_keys = ON;');
+
+        dbInstance = new DatabaseClass(DB_PATH);
+
+        try {
+            if (isVercel) {
+                dbInstance.exec('PRAGMA journal_mode = MEMORY;');
+            } else {
+                dbInstance.exec('PRAGMA journal_mode = WAL;');
+            }
+            dbInstance.exec('PRAGMA foreign_keys = ON;');
+        } catch (e) {
+            console.warn('Pragma config error:', e);
+        }
     }
     return dbInstance;
 }
@@ -115,7 +133,11 @@ function initDb() {
     } catch (e) {
         console.warn('Using fallback schema due to read error:', e);
     }
-    db.exec(schemaSql);
+    try {
+        db.exec(schemaSql);
+    } catch (e) {
+        console.warn('Exec schema error:', e);
+    }
 
     if (isVercel) {
         try {
