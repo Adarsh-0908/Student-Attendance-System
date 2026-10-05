@@ -163,8 +163,8 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Sub-Branch / Sec</label>
-                            <input id="signup-subbranch" type="text" maxlength="1" required placeholder="A" title="1 alphabet letter only (e.g. A)"
-                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 uppercase text-center font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                            <input id="signup-subbranch" type="text" placeholder="e.g. A or EC-I/J"
+                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
                         </div>
                     </div>
 
@@ -206,6 +206,8 @@
                             <span id="prof-header-dept" class="text-xs font-medium text-slate-600">Department</span>
                             <span class="text-slate-300">•</span>
                             <span id="prof-header-subbranch" class="text-xs font-semibold text-indigo-600">Sub-branch: A</span>
+                            <span class="text-slate-300">•</span>
+                            <span id="prof-header-id" class="text-xs font-mono text-slate-500">ID: -</span>
                         </div>
                     </div>
                 </div>
@@ -270,10 +272,10 @@
                         </select>
                     </div>
 
-                    <!-- Sub-Branch / Section (1 Alphabet) -->
+                    <!-- Sub-Branch / Section -->
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1" title="Sub division name (1 alphabet, e.g. A)">Sub-Branch / Sec</label>
-                        <input id="class-sec" type="text" maxlength="1" value="A" placeholder="A" title="1 alphabet letter only"
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Sub-Branch / Sec</label>
+                        <input id="class-sec" type="text" value="A" placeholder="A"
                                class="w-full text-xs font-bold text-center px-2.5 py-2 rounded-xl border border-slate-200 bg-white uppercase font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                     </div>
 
@@ -303,6 +305,36 @@
                             <option value="03:15 PM - 04:15 PM">03:15 PM - 04:15 PM</option>
                         </select>
                     </div>
+                </div>
+            </div>
+
+            <!-- Turnout Counter & Quick Actions Bar -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 text-xs font-semibold">
+                    <span id="existing-session-indicator" class="hidden px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">
+                        ⚠️ Previously Recorded Session
+                    </span>
+                    <div class="flex items-center gap-2 text-slate-600 bg-slate-100/80 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                        <span>Total: <strong id="summary-total" class="text-slate-900 font-mono">0</strong></span>
+                        <span>•</span>
+                        <span>Present: <strong id="summary-present" class="text-emerald-600 font-mono">0</strong></span>
+                        <span>•</span>
+                        <span>Absent: <strong id="summary-absent" class="text-rose-600 font-mono">0</strong></span>
+                        <span>•</span>
+                        <span>Turnout: <strong id="summary-turnout" class="text-indigo-600 font-mono">0%</strong></span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button id="btn-mark-all-p" type="button" class="flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all border border-emerald-200">
+                        Mark All Present
+                    </button>
+                    <button id="btn-mark-all-a" type="button" class="flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all border border-rose-200">
+                        Mark All Absent
+                    </button>
+                    <button id="btn-submit-attendance" type="button" class="flex-1 sm:flex-initial px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm">
+                        Submit Attendance
+                    </button>
                 </div>
             </div>
 

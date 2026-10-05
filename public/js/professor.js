@@ -9,17 +9,33 @@ const ProfessorApp = (function () {
     let isExistingSession = false;
     let pendingSubmissionPayload = null;
 
+    function setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    }
+
+    function getValue(id) {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    }
+
+    function addListener(id, event, handler) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener(event, handler);
+    }
+
     async function loadDashboard() {
         const session = JSON.parse(localStorage.getItem('attendance_user') || 'null');
         if (!session || session.userType !== 'faculty') {
-            window.App.showLogin();
+            if (window.App && window.App.showLogin) window.App.showLogin();
             return;
         }
 
         faculty = session.faculty;
-        document.getElementById('prof-header-name').textContent = faculty.name;
-        document.getElementById('prof-header-dept').textContent = `${faculty.designation} • Dept. of ${faculty.department}`;
-        document.getElementById('prof-header-id').textContent = `Faculty ID: ${faculty.faculty_id}`;
+        setText('prof-header-name', faculty.name);
+        setText('prof-header-dept', `${faculty.designation || 'Professor'} • Dept. of ${faculty.department}`);
+        setText('prof-header-subbranch', `Sub-branch: ${faculty.sub_branch || 'A'}`);
+        setText('prof-header-id', `Faculty ID: ${faculty.faculty_id || ''}`);
 
         // Default Date to today
         const todayIso = new Date().toISOString().split('T')[0];
@@ -44,11 +60,13 @@ const ProfessorApp = (function () {
 
             // Populate Subjects
             const subjectSelect = document.getElementById('class-subject');
-            subjectSelect.innerHTML = data.subjects.map(s => `
-                <option value="${s.id}" data-branch="${s.branch}" data-sem="${s.semester}">
-                    ${s.code} - ${s.name}
-                </option>
-            `).join('');
+            if (subjectSelect && data.subjects) {
+                subjectSelect.innerHTML = data.subjects.map(s => `
+                    <option value="${s.id}" data-branch="${s.branch}" data-sem="${s.semester}">
+                        ${s.code} - ${s.name}
+                    </option>
+                `).join('');
+            }
 
             // Select default matching subject if available
             filterSubjectsByClass();
@@ -60,9 +78,10 @@ const ProfessorApp = (function () {
 
     function filterSubjectsByClass() {
         if (!classOptions) return;
-        const branch = document.getElementById('class-branch').value;
-        const sem = Number(document.getElementById('class-sem').value);
+        const branch = getValue('class-branch');
+        const sem = Number(getValue('class-sem'));
         const subjectSelect = document.getElementById('class-subject');
+        if (!subjectSelect) return;
 
         const matchingSubjects = classOptions.subjects.filter(s => s.branch === branch && s.semester === sem);
 
@@ -70,7 +89,7 @@ const ProfessorApp = (function () {
             subjectSelect.innerHTML = matchingSubjects.map(s => `
                 <option value="${s.id}">${s.code} - ${s.name}</option>
             `).join('');
-        } else {
+        } else if (classOptions.subjects) {
             subjectSelect.innerHTML = classOptions.subjects.map(s => `
                 <option value="${s.id}">${s.code} - ${s.name} (${s.branch}-S${s.semester})</option>
             `).join('');
@@ -78,21 +97,14 @@ const ProfessorApp = (function () {
     }
 
     function setupEventListeners() {
-        // Change listeners for class selectors
-        document.getElementById('class-branch').addEventListener('change', () => {
-            filterSubjectsByClass();
-            loadRoster();
-        });
-        document.getElementById('class-sem').addEventListener('change', () => {
-            filterSubjectsByClass();
-            loadRoster();
-        });
-        document.getElementById('class-sec').addEventListener('change', loadRoster);
-        document.getElementById('class-subject').addEventListener('change', loadRoster);
-        document.getElementById('class-date').addEventListener('change', loadRoster);
-        document.getElementById('class-slot').addEventListener('change', loadRoster);
+        addListener('class-branch', 'change', () => { filterSubjectsByClass(); loadRoster(); });
+        addListener('class-sem', 'change', () => { filterSubjectsByClass(); loadRoster(); });
+        addListener('class-sec', 'input', loadRoster);
+        addListener('class-sec', 'change', loadRoster);
+        addListener('class-subject', 'change', loadRoster);
+        addListener('class-date', 'change', loadRoster);
+        addListener('class-slot', 'change', loadRoster);
 
-        // Search input
         const searchInput = document.getElementById('roster-search');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -100,47 +112,40 @@ const ProfessorApp = (function () {
             });
         }
 
-        // Quick Actions
-        document.getElementById('btn-mark-all-p').addEventListener('click', () => {
+        addListener('btn-mark-all-p', 'click', () => {
             markAll('P');
             toast.info('Marked all students as Present [P].');
         });
 
-        document.getElementById('btn-mark-all-a').addEventListener('click', () => {
+        addListener('btn-mark-all-a', 'click', () => {
             markAll('A');
             toast.warning('Marked all students as Absent [A].');
         });
 
-        // Submit & Sync
-        document.getElementById('btn-submit-attendance').addEventListener('click', handleSubmitAttendance);
+        addListener('btn-submit-attendance', 'click', handleSubmitAttendance);
 
-        // Overwrite Modal Confirm
-        document.getElementById('btn-confirm-overwrite').addEventListener('click', async () => {
+        addListener('btn-confirm-overwrite', 'click', async () => {
             closeDuplicateModal();
             if (pendingSubmissionPayload) {
                 await executeSubmission(pendingSubmissionPayload, true);
             }
         });
 
-        document.getElementById('btn-cancel-overwrite').addEventListener('click', closeDuplicateModal);
-
-        // Excel Export
-        document.getElementById('btn-export-excel').addEventListener('click', handleExportExcel);
-
-        // Interactive Matrix Modal
-        document.getElementById('btn-view-matrix').addEventListener('click', loadAttendanceMatrix);
-        document.getElementById('btn-close-matrix').addEventListener('click', closeMatrixModal);
+        addListener('btn-cancel-overwrite', 'click', closeDuplicateModal);
+        addListener('btn-export-excel', 'click', handleExportExcel);
+        addListener('btn-view-matrix', 'click', loadAttendanceMatrix);
+        addListener('btn-close-matrix', 'click', closeMatrixModal);
     }
 
     async function loadRoster() {
-        const branch = document.getElementById('class-branch').value;
-        const semester = document.getElementById('class-sem').value;
-        const section = document.getElementById('class-sec').value;
-        const subject_id = document.getElementById('class-subject').value;
-        const date = document.getElementById('class-date').value;
-        const slot = document.getElementById('class-slot').value;
+        const branch = getValue('class-branch');
+        const semester = getValue('class-sem');
+        const section = getValue('class-sec') || 'A';
+        const subject_id = getValue('class-subject');
+        const date = getValue('class-date');
+        const slot = getValue('class-slot');
 
-        if (!subject_id) return;
+        if (!branch || !semester || !section || !subject_id || !date || !slot) return;
 
         const rosterLoading = document.getElementById('roster-loading');
         const rosterContainer = document.getElementById('roster-container');
@@ -148,63 +153,59 @@ const ProfessorApp = (function () {
         if (rosterLoading) rosterLoading.classList.remove('hidden');
 
         try {
-            const url = `/api/roster?branch=${branch}&semester=${semester}&section=${section}&subject_id=${subject_id}&date=${date}&slot=${encodeURIComponent(slot)}`;
+            const url = `/api/roster?branch=${encodeURIComponent(branch)}&semester=${semester}&section=${encodeURIComponent(section)}&subject_id=${subject_id}&date=${date}&slot=${encodeURIComponent(slot)}`;
             const res = await fetch(url);
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.error || 'Failed to load roster.');
+                toast.error(data.error || 'Failed to fetch student roster.');
                 return;
             }
 
-            currentRoster = data.students;
+            currentRoster = data.students || [];
             isExistingSession = data.isExistingSession;
 
             const sessionBadge = document.getElementById('existing-session-indicator');
-            if (isExistingSession) {
-                sessionBadge.classList.remove('hidden');
-                sessionBadge.innerHTML = `
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        Existing Session Loaded (Editing)
-                    </span>
-                `;
-            } else {
-                sessionBadge.classList.add('hidden');
+            if (sessionBadge) {
+                if (isExistingSession) {
+                    sessionBadge.classList.remove('hidden');
+                } else {
+                    sessionBadge.classList.add('hidden');
+                }
             }
 
-            renderRoster();
-            updateLiveSummary();
+            renderRoster(currentRoster);
+            updateSummaryCounters();
         } catch (err) {
-            console.error('Error loading roster:', err);
-            toast.error('Network error loading roster.');
+            console.error('Roster error:', err);
+            toast.error('Network error fetching class roster.');
         } finally {
             if (rosterLoading) rosterLoading.classList.add('hidden');
         }
     }
 
-    function renderRoster() {
+    function renderRoster(students) {
         const tbody = document.getElementById('roster-tbody');
         if (!tbody) return;
 
-        if (currentRoster.length === 0) {
+        if (students.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="4" class="px-6 py-12 text-center text-slate-500">
-                        <p class="font-medium">No students enrolled in this section.</p>
-                        <p class="text-xs text-slate-400 mt-1">Check selected Branch, Semester, and Section.</p>
+                        <p class="font-bold text-sm text-slate-700">No students enrolled in this section.</p>
+                        <p class="text-xs text-slate-400 mt-1">Check selected Branch, Semester, and Sub-branch / Section.</p>
                     </td>
                 </tr>
             `;
             return;
         }
 
-        tbody.innerHTML = currentRoster.map((student, idx) => {
+        tbody.innerHTML = students.map(student => {
             const status = student.status || 'P';
             return `
-                <tr class="roster-row hover:bg-slate-50/70 border-b border-slate-100 last:border-0 transition-colors" data-student-id="${student.id}" data-name="${student.name.toLowerCase()}" data-roll="${student.roll_no}">
-                    <td class="px-4 py-3.5 whitespace-nowrap">
-                        <div class="flex items-center gap-2.5">
+                <tr class="roster-row hover:bg-slate-50/70 border-b border-slate-100 last:border-0 transition-colors" data-student-id="${student.id}">
+                    <td class="px-4 py-3.5 font-mono text-xs font-semibold text-slate-700">
+                        <div class="flex items-center gap-2">
                             <span class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold flex items-center justify-center">
                                 ${student.roll_no}
                             </span>
@@ -217,24 +218,24 @@ const ProfessorApp = (function () {
                     </td>
                     <td class="px-4 py-3.5 text-center">
                         <div class="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200/80 gap-1" role="group">
-                            <button type="button" 
-                                    class="status-btn status-btn-p px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${status === 'P' ? 'active' : 'text-slate-600 hover:text-slate-900'}"
+                            <button type="button"
+                                    class="status-btn status-btn-p px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${status === 'P' ? 'active' : ''}"
                                     onclick="ProfessorApp.setStatus(${student.id}, 'P')">
-                                Present
+                                Present [P]
                             </button>
-                            <button type="button" 
-                                    class="status-btn status-btn-a px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${status === 'A' ? 'active' : 'text-slate-600 hover:text-slate-900'}"
+                            <button type="button"
+                                    class="status-btn status-btn-a px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${status === 'A' ? 'active' : ''}"
                                     onclick="ProfessorApp.setStatus(${student.id}, 'A')">
-                                Absent
+                                Absent [A]
                             </button>
                         </div>
                     </td>
                     <td class="px-4 py-3.5 hidden md:table-cell">
-                        <input type="text" 
-                               placeholder="Optional remarks..." 
+                        <input type="text"
+                               placeholder="Optional remarks..."
                                value="${student.remarks || ''}"
-                               class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white"
-                               onchange="ProfessorApp.setRemarks(${student.id}, this.value)" />
+                               onchange="ProfessorApp.setRemarks(${student.id}, this.value)"
+                               class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white" />
                     </td>
                 </tr>
             `;
@@ -246,14 +247,14 @@ const ProfessorApp = (function () {
         if (student) {
             student.status = newStatus;
             updateRowButtons(studentId, newStatus);
-            updateLiveSummary();
+            updateSummaryCounters();
         }
     }
 
-    function setRemarks(studentId, remarks) {
+    function setRemarks(studentId, remarksText) {
         const student = currentRoster.find(s => s.id === studentId);
         if (student) {
-            student.remarks = remarks;
+            student.remarks = remarksText;
         }
     }
 
@@ -264,8 +265,8 @@ const ProfessorApp = (function () {
         const btnP = row.querySelector('.status-btn-p');
         const btnA = row.querySelector('.status-btn-a');
 
-        btnP.classList.toggle('active', status === 'P');
-        btnA.classList.toggle('active', status === 'A');
+        if (btnP) btnP.classList.toggle('active', status === 'P');
+        if (btnA) btnA.classList.toggle('active', status === 'A');
     }
 
     function markAll(status) {
@@ -273,70 +274,45 @@ const ProfessorApp = (function () {
             student.status = status;
             updateRowButtons(student.id, status);
         });
-        updateLiveSummary();
+        updateSummaryCounters();
     }
 
-    function updateLiveSummary() {
+    function updateSummaryCounters() {
         const total = currentRoster.length;
         let present = 0;
         let absent = 0;
 
         currentRoster.forEach(s => {
             if (s.status === 'P') present++;
-            else absent++;
+            else if (s.status === 'A') absent++;
         });
 
-        const turnout = total > 0 ? ((present / total) * 100).toFixed(0) : 0;
+        const turnoutPct = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
-        const elTotal = document.getElementById('summary-total');
-        const elPresent = document.getElementById('summary-present');
-        const elAbsent = document.getElementById('summary-absent');
-        const elTurnout = document.getElementById('summary-turnout');
-
-        if (elTotal) elTotal.textContent = total;
-        if (elPresent) elPresent.textContent = present;
-        if (elAbsent) elAbsent.textContent = absent;
-        if (elTurnout) elTurnout.textContent = `${turnout}%`;
-    }
-
-    function filterRosterDisplay(query) {
-        const q = query.trim().toLowerCase();
-        const rows = document.querySelectorAll('.roster-row');
-
-        rows.forEach(row => {
-            const name = row.getAttribute('data-name');
-            const roll = row.getAttribute('data-roll');
-            if (!q || name.includes(q) || roll.includes(q)) {
-                row.classList.remove('hidden');
-            } else {
-                row.classList.add('hidden');
-            }
-        });
+        setText('summary-total', total);
+        setText('summary-present', present);
+        setText('summary-absent', absent);
+        setText('summary-turnout', `${turnoutPct}%`);
     }
 
     async function handleSubmitAttendance() {
-        if (currentRoster.length === 0) {
-            toast.warning('No students to mark attendance for.');
+        if (!currentRoster || currentRoster.length === 0) {
+            toast.error('No student roster loaded to submit.');
             return;
         }
 
-        const branch = document.getElementById('class-branch').value;
-        const semester = document.getElementById('class-sem').value;
-        const section = document.getElementById('class-sec').value;
-        const subject_id = document.getElementById('class-subject').value;
-        const date = document.getElementById('class-date').value;
-        const slot = document.getElementById('class-slot').value;
-
-        if (!date || !slot) {
-            toast.warning('Please select a valid date and lecture slot.');
-            return;
-        }
+        const branch = getValue('class-branch');
+        const semester = getValue('class-sem');
+        const section = getValue('class-sec') || 'A';
+        const subject_id = getValue('class-subject');
+        const date = getValue('class-date');
+        const slot = getValue('class-slot');
 
         const payload = {
             branch,
-            semester: Number(semester),
+            semester,
             section,
-            subject_id: Number(subject_id),
+            subject_id,
             faculty_id: faculty.faculty_id,
             date,
             slot,
@@ -344,45 +320,20 @@ const ProfessorApp = (function () {
                 student_id: s.id,
                 status: s.status || 'P',
                 remarks: s.remarks || ''
-            }))
+            })),
+            overwrite: false
         };
 
-        // Check for duplicate session if not already in edit mode
-        try {
-            const checkRes = await fetch('/api/attendance/check-duplicate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ branch, semester, section, subject_id, date, slot })
-            });
-            const checkData = await checkRes.json();
-
-            if (checkData.exists) {
-                pendingSubmissionPayload = payload;
-                openDuplicateModal(date, slot);
-                return;
-            }
-
-            // Normal new submission
-            await executeSubmission(payload, false);
-        } catch (err) {
-            console.error('Error during submission check:', err);
-            toast.error('Failed to communicate with server.');
-        }
+        await executeSubmission(payload, false);
     }
 
-    async function executeSubmission(payload, overwrite) {
-        payload.overwrite = overwrite;
+    async function executeSubmission(payload, overwriteFlag) {
+        payload.overwrite = overwriteFlag;
         const submitBtn = document.getElementById('btn-submit-attendance');
-        const originalText = submitBtn.innerHTML;
-
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-            </svg>
-            Saving & Syncing...
-        `;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+        }
 
         try {
             const res = await fetch('/api/attendance/submit', {
@@ -393,116 +344,123 @@ const ProfessorApp = (function () {
 
             const data = await res.json();
 
-            if (!res.ok) {
-                toast.error(data.message || data.error || 'Failed to submit attendance.');
+            if (res.status === 409 && data.error === 'DUPLICATE_SESSION') {
+                pendingSubmissionPayload = payload;
+                showDuplicateModal(data.message || 'Session already exists for this slot.');
                 return;
             }
 
+            if (!res.ok) {
+                toast.error(data.error || 'Failed to submit attendance.');
+                return;
+            }
+
+            const sessionBadge = document.getElementById('existing-session-indicator');
+            if (sessionBadge) sessionBadge.classList.remove('hidden');
+
             isExistingSession = true;
-            document.getElementById('existing-session-indicator').classList.remove('hidden');
-            toast.success(data.message || 'Attendance submitted & synced successfully!', 'Attendance Saved');
+            toast.success(
+                `Recorded ${data.summary.present}/${data.summary.total} Present (${data.summary.turnout}% Turnout)`,
+                overwriteFlag ? 'Session Updated' : 'Attendance Saved'
+            );
         } catch (err) {
-            console.error('Submission error:', err);
-            toast.error('Failed to submit attendance.');
+            console.error('Submit error:', err);
+            toast.error('Network error during attendance submission.');
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Attendance';
+            }
         }
     }
 
-    function openDuplicateModal(date, slot) {
+    function showDuplicateModal(message) {
         const modal = document.getElementById('duplicate-modal');
         const desc = document.getElementById('duplicate-modal-desc');
-        desc.textContent = `Attendance for this lecture slot (${slot}) on ${date} is already recorded in the system. Updating will overwrite the existing records.`;
-        modal.classList.remove('hidden');
+        if (desc) desc.textContent = message;
+        if (modal) modal.classList.remove('hidden');
     }
 
     function closeDuplicateModal() {
         const modal = document.getElementById('duplicate-modal');
-        modal.classList.add('hidden');
+        if (modal) modal.classList.add('hidden');
     }
 
     function handleExportExcel() {
-        const branch = document.getElementById('class-branch').value;
-        const semester = document.getElementById('class-sem').value;
-        const section = document.getElementById('class-sec').value;
-        const subject_id = document.getElementById('class-subject').value;
+        const branch = getValue('class-branch');
+        const semester = getValue('class-sem');
+        const section = getValue('class-sec') || 'A';
+        const subject_id = getValue('class-subject');
 
-        if (!subject_id) {
-            toast.warning('Please select a subject to export register.');
+        if (!branch || !semester || !section || !subject_id) {
+            toast.error('Please select Branch, Semester, Section, and Subject to export.');
             return;
         }
 
-        const exportUrl = `/api/attendance/export-excel?branch=${branch}&semester=${semester}&section=${section}&subject_id=${subject_id}`;
-        
-        // Trigger browser download
-        const a = document.createElement('a');
-        a.href = exportUrl;
-        a.setAttribute('download', '');
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        toast.success('Cumulative Attendance Register downloaded (.xlsx)', 'Excel Exported');
+        const exportUrl = `/api/attendance/export-excel?branch=${encodeURIComponent(branch)}&semester=${semester}&section=${encodeURIComponent(section)}&subject_id=${subject_id}`;
+        toast.info('Downloading styled Excel attendance register...');
+        window.location.href = exportUrl;
     }
 
     async function loadAttendanceMatrix() {
-        const branch = document.getElementById('class-branch').value;
-        const semester = document.getElementById('class-sem').value;
-        const section = document.getElementById('class-sec').value;
-        const subject_id = document.getElementById('class-subject').value;
-
-        if (!subject_id) return;
+        const branch = getValue('class-branch');
+        const semester = getValue('class-sem');
+        const section = getValue('class-sec') || 'A';
+        const subject_id = getValue('class-subject');
 
         const modal = document.getElementById('matrix-modal');
         const container = document.getElementById('matrix-content');
-        modal.classList.remove('hidden');
-        container.innerHTML = '<div class="p-8 text-center text-slate-500 font-medium">Loading register matrix...</div>';
+
+        if (modal) modal.classList.remove('hidden');
+        if (container) container.innerHTML = '<div class="p-8 text-center text-slate-500 font-medium text-xs">Loading register matrix...</div>';
 
         try {
-            const res = await fetch(`/api/attendance/matrix?branch=${branch}&semester=${semester}&section=${section}&subject_id=${subject_id}`);
+            const res = await fetch(`/api/attendance/matrix?branch=${encodeURIComponent(branch)}&semester=${semester}&section=${encodeURIComponent(section)}&subject_id=${subject_id}`);
             const data = await res.json();
 
             if (!res.ok) {
-                container.innerHTML = `<div class="p-8 text-center text-rose-500 font-medium">${data.error || 'Failed to load matrix.'}</div>`;
+                if (container) container.innerHTML = `<div class="p-8 text-center text-rose-500 font-medium text-xs">${data.error || 'Failed to load matrix.'}</div>`;
                 return;
             }
 
             renderMatrixTable(data);
         } catch (err) {
             console.error('Matrix error:', err);
-            container.innerHTML = `<div class="p-8 text-center text-rose-500 font-medium">Network error loading attendance matrix.</div>`;
+            if (container) container.innerHTML = '<div class="p-8 text-center text-rose-500 font-medium text-xs">Network error loading attendance matrix.</div>';
         }
     }
 
     function renderMatrixTable(data) {
         const container = document.getElementById('matrix-content');
+        if (!container) return;
+
         const sessions = data.sessions || [];
         const studentRows = data.studentRows || [];
 
         if (sessions.length === 0) {
             container.innerHTML = `
                 <div class="p-8 text-center text-slate-500 font-medium">
-                    No sessions recorded yet for ${data.subject ? data.subject.code : 'this subject'}.
+                    <p class="text-slate-700 font-bold text-sm">No recorded lecture sessions found.</p>
+                    <p class="text-slate-400 text-xs mt-1">Submit attendance for a lecture slot to populate the register matrix.</p>
                 </div>
             `;
             return;
         }
 
-        let html = `
+        let tableHtml = `
             <div class="overflow-x-auto max-h-[70vh] border border-slate-200 rounded-xl">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 shadow-sm z-10">
                         <tr>
-                            <th class="px-3 py-2.5 font-bold text-slate-700 uppercase tracking-wider sticky left-0 bg-slate-50">Roll No</th>
+                            <th class="px-3 py-2.5 font-bold text-slate-700 uppercase tracking-wider sticky left-0 bg-slate-50">Roll</th>
                             <th class="px-3 py-2.5 font-bold text-slate-700 uppercase tracking-wider sticky left-14 bg-slate-50">Student Name</th>
                             ${sessions.map(s => `
                                 <th class="px-3 py-2 text-center font-bold text-slate-600 border-l border-slate-200 whitespace-nowrap">
-                                    <div>${s.date}</div>
+                                    <div class="text-slate-900">${s.date}</div>
                                     <div class="text-[10px] text-slate-400 font-normal">${s.slot.split(' - ')[0]}</div>
                                 </th>
                             `).join('')}
-                            <th class="px-3 py-2.5 text-center font-bold text-slate-700 uppercase tracking-wider border-l border-slate-200 bg-slate-100">Total</th>
+                            <th class="px-3 py-2.5 text-center font-bold text-slate-700 uppercase tracking-wider border-l border-slate-200 bg-slate-100">Held</th>
                             <th class="px-3 py-2.5 text-center font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Attended</th>
                             <th class="px-3 py-2.5 text-center font-bold text-slate-700 uppercase tracking-wider bg-slate-100">%</th>
                             <th class="px-3 py-2.5 text-center font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Status</th>
@@ -512,22 +470,25 @@ const ProfessorApp = (function () {
         `;
 
         studentRows.forEach(sr => {
-            const isEligible = sr.isEligible;
-            html += `
+            const isEligible = sr.percentage >= 75;
+            tableHtml += `
                 <tr class="hover:bg-slate-50/80 transition-colors">
                     <td class="px-3 py-2.5 font-bold text-slate-800 sticky left-0 bg-white border-r border-slate-100">${sr.student.roll_no}</td>
                     <td class="px-3 py-2.5 font-medium text-slate-900 sticky left-14 bg-white border-r border-slate-100 whitespace-nowrap">${sr.student.name}</td>
-                    ${sr.history.map(h => {
-                        let badge = '-';
-                        if (h.status === 'P') badge = '<span class="font-bold text-emerald-600">P</span>';
-                        else if (h.status === 'A') badge = '<span class="font-bold text-rose-500">A</span>';
+                    ${sessions.map(s => {
+                        const h = sr.history.find(item => item.session_id === s.id);
+                        let badge = '<span class="text-slate-300">-</span>';
+                        if (h) {
+                            if (h.status === 'P') badge = '<span class="font-bold text-emerald-600">P</span>';
+                            else if (h.status === 'A') badge = '<span class="font-bold text-rose-500">A</span>';
+                        }
                         return `<td class="px-3 py-2 text-center border-l border-slate-100 font-mono">${badge}</td>`;
                     }).join('')}
-                    <td class="px-3 py-2.5 text-center font-medium text-slate-600 border-l border-slate-200 bg-slate-50/50">${sr.totalClasses}</td>
+                    <td class="px-3 py-2.5 text-center font-medium text-slate-600 border-l border-slate-200 bg-slate-50/50">${sr.totalHeld}</td>
                     <td class="px-3 py-2.5 text-center font-bold text-slate-800 bg-slate-50/50">${sr.attendedClasses}</td>
                     <td class="px-3 py-2.5 text-center font-extrabold ${isEligible ? 'text-emerald-600' : 'text-rose-600'} bg-slate-50/50">${sr.percentage}%</td>
                     <td class="px-3 py-2.5 text-center bg-slate-50/50">
-                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${isEligible ? 'badge-present' : 'badge-absent'}">
+                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${isEligible ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
                             ${isEligible ? 'Eligible' : 'Shortage'}
                         </span>
                     </td>
@@ -535,23 +496,25 @@ const ProfessorApp = (function () {
             `;
         });
 
-        html += `
+        tableHtml += `
                     </tbody>
                 </table>
             </div>
         `;
 
-        container.innerHTML = html;
+        container.innerHTML = tableHtml;
     }
 
     function closeMatrixModal() {
-        document.getElementById('matrix-modal').classList.add('hidden');
+        const modal = document.getElementById('matrix-modal');
+        if (modal) modal.classList.add('hidden');
     }
 
     return {
         loadDashboard,
         setStatus,
-        setRemarks
+        setRemarks,
+        handleExportExcel
     };
 })();
 
