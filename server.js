@@ -24,23 +24,6 @@ const publicPath = fs.existsSync(path.join(__dirname, 'public'))
 
 app.use(express.static(publicPath));
 
-// Explicit static routes for JS and CSS files
-app.get('/js/:file', (req, res) => {
-    const filePath = path.join(publicPath, 'js', req.params.file);
-    if (fs.existsSync(filePath)) {
-        return res.sendFile(filePath);
-    }
-    res.status(404).send('JavaScript file not found');
-});
-
-app.get('/css/:file', (req, res) => {
-    const filePath = path.join(publicPath, 'css', req.params.file);
-    if (fs.existsSync(filePath)) {
-        return res.sendFile(filePath);
-    }
-    res.status(404).send('CSS file not found');
-});
-
 // ==========================================
 // 1. AUTHENTICATION ROUTES
 // ==========================================
