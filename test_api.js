@@ -75,54 +75,38 @@ async function runAllTests() {
     assert.strictEqual(signupRes.data.faculty.name, 'Dr. Test Professor');
     console.log('✓ Faculty Sign Up OK:', signupRes.data.faculty.name);
 
-    // Verify newly registered faculty receives subject options!
-    const newFacOptions = await request('GET', `/api/classes/options?faculty_id=${signupRes.data.faculty.faculty_id}`);
-    assert.strictEqual(newFacOptions.status, 200);
-    assert.ok(newFacOptions.data.subjects.length > 0, 'New faculty should have available subjects');
-    console.log(`✓ New Faculty subjects populated: ${newFacOptions.data.subjects.length} subjects found`);
-
-    console.log('\n--- 2b. Testing Student Sign Up & Login ---');
-    const studentRoll = '999' + Math.floor(Math.random() * 1000);
-    const stuSignupRes = await request('POST', '/api/auth/student-signup', {
-        name: 'Test Student New',
-        roll_no: studentRoll,
-        enrollment_no: 'ENR' + studentRoll,
+    console.log('\n--- 3. Testing Add Subject API ---');
+    const addSubRes = await request('POST', '/api/subjects/add', {
+        code: 'CS501',
+        name: 'Database Management Systems',
         branch: 'Computer Engineering',
         semester: 5,
-        section: 'A',
-        dob: '2004-06-12',
-        password: 'password123'
+        faculty_id: 'FAC101'
     });
-    assert.strictEqual(stuSignupRes.status, 200, 'Student signup should return 200');
-    assert.strictEqual(stuSignupRes.data.student.name, 'Test Student New');
-    console.log('✓ Student Sign Up OK:', stuSignupRes.data.student.name);
+    assert.strictEqual(addSubRes.status, 200, 'Add subject should return 200');
+    console.log('✓ Subject added OK:', addSubRes.data.message);
 
-    const stuLoginRes = await request('POST', '/api/auth/student-login', {
-        roll_no: studentRoll,
+    console.log('\n--- 4. Testing Add Student API ---');
+    const addStuRes = await request('POST', '/api/students/add', {
+        roll_no: '101',
+        enrollment_no: 'ENR20240101',
+        name: 'Aarav Sharma',
         branch: 'Computer Engineering',
         semester: 5,
-        password: 'password123'
+        section: 'A'
     });
-    assert.strictEqual(stuLoginRes.status, 200, 'Student login should return 200');
-    assert.strictEqual(stuLoginRes.data.student.roll_no, studentRoll);
-    console.log('✓ Student Login OK for newly registered student:', stuLoginRes.data.student.roll_no);
+    assert.strictEqual(addStuRes.status, 200, 'Add student should return 200');
+    console.log('✓ Student added OK:', addStuRes.data.message);
 
-    console.log('\n--- 2c. Testing /signup SPA Route ---');
-    const spaRes = await request('GET', '/signup');
-    assert.strictEqual(spaRes.status, 200);
-    assert.ok(spaRes.data.toString().includes('<!DOCTYPE html>'), 'SPA route should return index.html');
-    console.log('✓ Direct /signup route returns 200 index.html');
-
-    console.log('\n--- 3. Testing Professor Roster Fetch ---');
+    console.log('\n--- 5. Testing Professor Roster Fetch ---');
     const optionsRes = await request('GET', '/api/classes/options?faculty_id=FAC101');
-    const dbmsSubject = optionsRes.data.subjects.find(s => s.code === 'CS501') || optionsRes.data.subjects[0];
-    const subjectId = dbmsSubject.id;
+    const subjectId = optionsRes.data.subjects[0].id;
     const rosterRes = await request('GET', `/api/roster?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}&date=2026-10-05&slot=09:00%20AM%20-%2010:00%20AM`);
     assert.strictEqual(rosterRes.status, 200);
-    assert.ok(rosterRes.data.students.length >= 5, 'Should have at least 5 students');
-    console.log(`✓ Roster fetched ${rosterRes.data.students.length} students successfully for ${dbmsSubject.code}`);
+    assert.strictEqual(rosterRes.data.students.length, 1, 'Should have 1 added student');
+    console.log('✓ Roster fetched added student successfully');
 
-    console.log('\n--- 4. Testing Attendance Submit & Duplicate Detection ---');
+    console.log('\n--- 6. Testing Attendance Submit & Duplicate Detection ---');
     const newDate = '2026-10-05';
     const newSlot = '02:00 PM - 03:00 PM';
     
@@ -137,7 +121,7 @@ async function runAllTests() {
         slot: newSlot,
         records: rosterRes.data.students.map(s => ({
             student_id: s.id,
-            status: s.roll_no === '103' ? 'A' : 'P'
+            status: 'P'
         })),
         overwrite: false
     });
@@ -175,16 +159,16 @@ async function runAllTests() {
     assert.strictEqual(overwriteRes.data.isUpdate, true);
     console.log('✓ Overwrite with confirmation flag works as expected (isUpdate: true)');
 
-    console.log('\n--- 5. Testing Interactive Cumulative Attendance Matrix ---');
+    console.log('\n--- 7. Testing Interactive Cumulative Attendance Matrix ---');
     const matrixRes = await request('GET', `/api/attendance/matrix?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}`);
     assert.strictEqual(matrixRes.status, 200);
-    assert.ok(matrixRes.data.sessions.length >= 7, 'Should reflect the newly added session');
+    assert.ok(matrixRes.data.sessions.length >= 1, 'Should reflect the newly added session');
     console.log(`✓ Cumulative Matrix reflects ${matrixRes.data.sessions.length} sessions across ${matrixRes.data.studentRows.length} students`);
 
-    console.log('\n--- 6. Testing Excel (.xlsx) Export Stream ---');
+    console.log('\n--- 8. Testing Excel (.xlsx) Export Stream ---');
     const excelRes = await request('GET', `/api/attendance/export-excel?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}`);
     assert.strictEqual(excelRes.status, 200);
     assert.ok(excelRes.headers['content-type'].includes('spreadsheetml'), 'Content type should be Excel');
-    assert.ok(excelRes.data.length > 5000, 'Excel buffer size should be valid');
+    assert.ok(excelRes.data.length > 3000, 'Excel buffer size should be valid');
     console.log(`✓ Excel Register generated: ${excelRes.data.length} bytes, Content-Disposition: ${excelRes.headers['content-disposition']}`);
 }

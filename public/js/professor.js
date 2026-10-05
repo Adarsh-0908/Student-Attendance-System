@@ -54,7 +54,8 @@ const ProfessorApp = (function () {
 
     async function fetchClassOptions() {
         try {
-            const res = await fetch(`/api/classes/options?faculty_id=${faculty.faculty_id}`);
+            const facId = faculty ? faculty.faculty_id : 'FAC101';
+            const res = await fetch(`/api/classes/options?faculty_id=${facId}`);
             const data = await res.json();
             classOptions = data;
 
@@ -89,10 +90,12 @@ const ProfessorApp = (function () {
             subjectSelect.innerHTML = matchingSubjects.map(s => `
                 <option value="${s.id}">${s.code} - ${s.name}</option>
             `).join('');
-        } else if (classOptions.subjects) {
+        } else if (classOptions.subjects && classOptions.subjects.length > 0) {
             subjectSelect.innerHTML = classOptions.subjects.map(s => `
                 <option value="${s.id}">${s.code} - ${s.name} (${s.branch}-S${s.semester})</option>
             `).join('');
+        } else {
+            subjectSelect.innerHTML = `<option value="">No subjects found for this branch. Click "+ Add Subject" above.</option>`;
         }
     }
 
@@ -135,6 +138,77 @@ const ProfessorApp = (function () {
         addListener('btn-export-excel', 'click', handleExportExcel);
         addListener('btn-view-matrix', 'click', loadAttendanceMatrix);
         addListener('btn-close-matrix', 'click', closeMatrixModal);
+
+        // Add Subject Form Submit Handler
+        const formAddSub = document.getElementById('form-add-subject');
+        if (formAddSub) {
+            formAddSub.onsubmit = async (e) => {
+                e.preventDefault();
+                const payload = {
+                    code: getValue('add-sub-code'),
+                    name: getValue('add-sub-name'),
+                    branch: getValue('add-sub-branch'),
+                    semester: getValue('add-sub-sem'),
+                    faculty_id: faculty ? faculty.faculty_id : 'FAC101'
+                };
+                try {
+                    const res = await fetch('/api/subjects/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        toast.error(data.error || 'Failed to add subject.');
+                        return;
+                    }
+                    toast.success(data.message || 'Subject added!');
+                    const modal = document.getElementById('modal-add-subject');
+                    if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+                    formAddSub.reset();
+                    await fetchClassOptions();
+                } catch (err) {
+                    console.error('Add subject error:', err);
+                    toast.error('Network error adding subject.');
+                }
+            };
+        }
+
+        // Add Student Form Submit Handler
+        const formAddStu = document.getElementById('form-add-student');
+        if (formAddStu) {
+            formAddStu.onsubmit = async (e) => {
+                e.preventDefault();
+                const payload = {
+                    roll_no: getValue('add-stu-roll'),
+                    enrollment_no: getValue('add-stu-enr'),
+                    name: getValue('add-stu-name'),
+                    branch: getValue('add-stu-branch'),
+                    semester: getValue('add-stu-sem'),
+                    section: getValue('add-stu-sec') || 'A'
+                };
+                try {
+                    const res = await fetch('/api/students/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        toast.error(data.error || 'Failed to add student.');
+                        return;
+                    }
+                    toast.success(data.message || 'Student added!');
+                    const modal = document.getElementById('modal-add-student');
+                    if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+                    formAddStu.reset();
+                    await loadRoster();
+                } catch (err) {
+                    console.error('Add student error:', err);
+                    toast.error('Network error adding student.');
+                }
+            };
+        }
     }
 
     async function loadRoster() {
@@ -148,7 +222,6 @@ const ProfessorApp = (function () {
         if (!branch || !semester || !section || !subject_id || !date || !slot) return;
 
         const rosterLoading = document.getElementById('roster-loading');
-        const rosterContainer = document.getElementById('roster-container');
 
         if (rosterLoading) rosterLoading.classList.remove('hidden');
 
@@ -192,8 +265,8 @@ const ProfessorApp = (function () {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="4" class="px-6 py-12 text-center text-slate-500">
-                        <p class="font-bold text-sm text-slate-700">No students enrolled in this section.</p>
-                        <p class="text-xs text-slate-400 mt-1">Check selected Branch, Semester, and Sub-branch / Section.</p>
+                        <p class="font-bold text-sm text-slate-700">No students found for this Branch / Section.</p>
+                        <p class="text-xs text-slate-400 mt-1">Click the "+ Add Student" button above to add students to this class.</p>
                     </td>
                 </tr>
             `;
@@ -313,7 +386,7 @@ const ProfessorApp = (function () {
             semester,
             section,
             subject_id,
-            faculty_id: faculty.faculty_id,
+            faculty_id: faculty ? faculty.faculty_id : 'FAC101',
             date,
             slot,
             records: currentRoster.map(s => ({

@@ -3,10 +3,25 @@ const { getDb } = require('../database/db');
 
 /**
  * Generates an Enterprise Cumulative Attendance Register Excel Workbook
- * @param {Object} params - { branch, semester, section, subject_id }
- * @returns {Buffer} - Excel file buffer
+ * @param {string|Object} branch - Branch name or params object
+ * @param {number} [semester]
+ * @param {string} [section]
+ * @param {number} [subject_id]
+ * @returns {Buffer|Object} - Excel file buffer
  */
-function generateCumulativeAttendanceExcel({ branch, semester, section, subject_id }) {
+function generateCumulativeAttendanceExcel(branch, semester, section, subject_id) {
+    let b = branch;
+    let sem = semester;
+    let sec = section;
+    let subId = subject_id;
+
+    if (typeof branch === 'object' && branch !== null) {
+        b = branch.branch;
+        sem = branch.semester;
+        sec = branch.section;
+        subId = branch.subject_id;
+    }
+
     const db = getDb();
 
     // 1. Fetch Subject & Faculty Metadata
@@ -16,7 +31,7 @@ function generateCumulativeAttendanceExcel({ branch, semester, section, subject_
         LEFT JOIN faculty f ON s.faculty_id = f.faculty_id
         WHERE s.id = ?
     `);
-    const subject = subjectQuery.get(subject_id);
+    const subject = subjectQuery.get(Number(subId));
     if (!subject) {
         throw new Error('Subject not found');
     }
@@ -27,7 +42,7 @@ function generateCumulativeAttendanceExcel({ branch, semester, section, subject_
         FROM students
         WHERE branch = ? AND semester = ? AND section = ?
         ORDER BY CAST(roll_no AS INTEGER) ASC, roll_no ASC
-    `).all(branch, Number(semester), section);
+    `).all(b, Number(sem), sec);
 
     // 3. Fetch all attendance sessions for this subject & class, ordered chronologically
     const sessions = db.prepare(`
@@ -35,7 +50,7 @@ function generateCumulativeAttendanceExcel({ branch, semester, section, subject_
         FROM attendance_sessions
         WHERE branch = ? AND semester = ? AND section = ? AND subject_id = ?
         ORDER BY date ASC, slot ASC
-    `).all(branch, Number(semester), section, subject_id);
+    `).all(b, Number(sem), sec, Number(subId));
 
     // 4. Fetch all attendance records for these sessions
     const sessionIds = sessions.map(s => s.id);
@@ -63,7 +78,7 @@ function generateCumulativeAttendanceExcel({ branch, semester, section, subject_
     // Header Block
     dataRows.push(['STUDENT ATTENDANCE SYSTEM']);
     dataRows.push(['OFFICIAL CUMULATIVE ATTENDANCE REGISTER - ACADEMIC YEAR 2026-2027']);
-    dataRows.push([`Department: ${branch}  |  Semester: ${semester}  |  Section: ${section}`]);
+    dataRows.push([`Department: ${b}  |  Semester: ${sem}  |  Section: ${sec}`]);
     dataRows.push([`Course / Subject: ${subject.code} - ${subject.name}  |  Faculty In-Charge: ${subject.faculty_name || subject.faculty_id}`]);
     dataRows.push([`Register Generated: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC  |  Criteria: Mandatory 75.0% Minimum Attendance`]);
     dataRows.push([]); // Spacer row
@@ -170,10 +185,7 @@ function generateCumulativeAttendanceExcel({ branch, semester, section, subject_
 
     // Return binary buffer
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    return {
-        buffer: excelBuffer,
-        filename: `${branch}_Sem${semester}_${section}_${subject.code}_Attendance_Register.xlsx`
-    };
+    return excelBuffer;
 }
 
 module.exports = {
