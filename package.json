@@ -1,0 +1,23 @@
+{
+  "name": "student-attendance-system",
+  "version": "1.0.0",
+  "description": "College Attendance Management System",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node database/seed.js",
+    "test": "node test_api.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,204 @@
+const { initDb } = require('./db');
+const crypto = require('crypto');
+
+function seedDatabase() {
+    const db = initDb();
+    console.log('Seeding College Attendance Management System database...');
+
+    // Clear existing data in correct FK order and reset autoincrement sequences
+    db.exec(`
+        DELETE FROM attendance_records;
+        DELETE FROM attendance_sessions;
+        DELETE FROM subjects;
+        DELETE FROM students;
+        DELETE FROM faculty;
+        DELETE FROM sqlite_sequence WHERE name IN ('students', 'faculty', 'subjects', 'attendance_sessions', 'attendance_records');
+    `);
+
+    // 1. Seed Faculty (1 Professor)
+    const insertFaculty = db.prepare(`
+        INSERT INTO faculty (faculty_id, name, email, department, designation, password)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    insertFaculty.run(
+        'FAC101',
+        'Dr. Rajesh Sharma',
+        'dr.sharma@apex.edu',
+        'CSE',
+        'Associate Professor & HOD',
+        'password123'
+    );
+
+    // 2. Seed Subjects
+    const insertSubject = db.prepare(`
+        INSERT INTO subjects (code, name, branch, semester, faculty_id)
+        VALUES (?, ?, ?, ?, ?)
+    `);
+
+    const subjects = [
+        { code: 'CS501', name: 'Database Management Systems', branch: 'CSE', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CS502', name: 'Operating Systems', branch: 'CSE', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CS503', name: 'Computer Networks', branch: 'CSE', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CS504', name: 'Design & Analysis of Algorithms', branch: 'CSE', semester: 5, faculty_id: 'FAC101' }
+    ];
+
+    for (const sub of subjects) {
+        insertSubject.run(sub.code, sub.name, sub.branch, sub.semester, sub.faculty_id);
+    }
+
+    // 3. Seed Students (5 Students in CSE, Sem 5, Sec A)
+    const insertStudent = db.prepare(`
+        INSERT INTO students (roll_no, enrollment_no, name, branch, semester, section, dob, password)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const students = [
+        { roll_no: '101', enrollment_no: 'ENR20240101', name: 'Aarav Sharma', branch: 'CSE', semester: 5, section: 'A', dob: '2004-03-15', password: 'password123' },
+        { roll_no: '102', enrollment_no: 'ENR20240102', name: 'Ananya Patel', branch: 'CSE', semester: 5, section: 'A', dob: '2004-07-22', password: 'password123' },
+        { roll_no: '103', enrollment_no: 'ENR20240103', name: 'Rohan Gupta', branch: 'CSE', semester: 5, section: 'A', dob: '2004-11-05', password: 'password123' },
+        { roll_no: '104', enrollment_no: 'ENR20240104', name: 'Isha Verma', branch: 'CSE', semester: 5, section: 'A', dob: '2004-01-30', password: 'password123' },
+        { roll_no: '105', enrollment_no: 'ENR20240105', name: 'Kabir Mehta', branch: 'CSE', semester: 5, section: 'A', dob: '2004-09-18', password: 'password123' }
+    ];
+
+    for (const st of students) {
+        insertStudent.run(st.roll_no, st.enrollment_no, st.name, st.branch, st.semester, st.section, st.dob, st.password);
+    }
+
+    // Retrieve inserted students and subjects for foreign key mapping
+    const studentRows = db.prepare('SELECT id, roll_no, name FROM students ORDER BY roll_no ASC').all();
+    const subjectRows = db.prepare('SELECT id, code, name FROM subjects').all();
+    const dbmsSub = subjectRows.find(s => s.code === 'CS501');
+    const osSub = subjectRows.find(s => s.code === 'CS502');
+    const cnSub = subjectRows.find(s => s.code === 'CS503');
+
+    // 4. Seed Historical Attendance Sessions & Records
+    // Let's create realistic past sessions in September/October 2026
+    const insertSession = db.prepare(`
+        INSERT INTO attendance_sessions (session_uuid, branch, semester, section, subject_id, faculty_id, date, slot)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertRecord = db.prepare(`
+        INSERT INTO attendance_records (session_id, student_id, status, remarks)
+        VALUES (?, ?, ?, ?)
+    `);
+
+    // Predefined sessions with dates and attendance patterns
+    // Student patterns:
+    // Aarav (101): High attendance (~88%)
+    // Ananya (102): High attendance (~90%)
+    // Rohan (103): Low attendance (~60%) -> Triggers <75% Warning Red Banner!
+    // Isha (104): Moderate-high (~80%)
+    // Kabir (105): Low attendance (~68%) -> Triggers <75% Warning Red Banner!
+
+    const historicalSessions = [
+        {
+            subject: dbmsSub.id,
+            date: '2026-09-15',
+            slot: '09:00 AM - 10:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'P', '104': 'P', '105': 'P' }
+        },
+        {
+            subject: dbmsSub.id,
+            date: '2026-09-18',
+            slot: '09:00 AM - 10:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'A' }
+        },
+        {
+            subject: dbmsSub.id,
+            date: '2026-09-22',
+            slot: '09:00 AM - 10:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'P' }
+        },
+        {
+            subject: dbmsSub.id,
+            date: '2026-09-25',
+            slot: '09:00 AM - 10:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'A' }
+        },
+        {
+            subject: dbmsSub.id,
+            date: '2026-09-29',
+            slot: '09:00 AM - 10:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'P', '104': 'A', '105': 'A' }
+        },
+        {
+            subject: dbmsSub.id,
+            date: '2026-10-02',
+            slot: '09:00 AM - 10:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'P' }
+        },
+        // Operating Systems sessions
+        {
+            subject: osSub.id,
+            date: '2026-09-16',
+            slot: '10:00 AM - 11:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'P', '104': 'P', '105': 'P' }
+        },
+        {
+            subject: osSub.id,
+            date: '2026-09-23',
+            slot: '10:00 AM - 11:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'A' }
+        },
+        {
+            subject: osSub.id,
+            date: '2026-09-30',
+            slot: '10:00 AM - 11:00 AM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'A' }
+        },
+        // Computer Networks sessions
+        {
+            subject: cnSub.id,
+            date: '2026-09-17',
+            slot: '11:15 AM - 12:15 PM',
+            statuses: { '101': 'P', '102': 'P', '103': 'P', '104': 'P', '105': 'P' }
+        },
+        {
+            subject: cnSub.id,
+            date: '2026-09-24',
+            slot: '11:15 AM - 12:15 PM',
+            statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'A', '105': 'A' }
+        },
+        {
+            subject: cnSub.id,
+            date: '2026-10-01',
+            slot: '11:15 AM - 12:15 PM',
+            statuses: { '101': 'P', '102': 'P', '103': 'P', '104': 'P', '105': 'P' }
+        }
+    ];
+
+    for (const sess of historicalSessions) {
+        const uuid = crypto.randomUUID();
+        insertSession.run(
+            uuid,
+            'CSE',
+            5,
+            'A',
+            sess.subject,
+            'FAC101',
+            sess.date,
+            sess.slot
+        );
+
+        const sessionRow = db.prepare('SELECT id FROM attendance_sessions WHERE session_uuid = ?').get(uuid);
+
+        for (const st of studentRows) {
+            const status = sess.statuses[st.roll_no] || 'P';
+            insertRecord.run(sessionRow.id, st.id, status, '');
+        }
+    }
+
+    console.log(`Database seeded successfully!`);
+    console.log(`- 1 Faculty: Dr. Rajesh Sharma (FAC101 / password123)`);
+    console.log(`- 5 Students seeded in CSE Sem 5 Sec A (Roll 101 to 105)`);
+    console.log(`- 4 Subjects seeded`);
+    console.log(`- 12 Historical Attendance Sessions with multi-date matrix records seeded`);
+}
+
+if (require.main === module) {
+    seedDatabase();
+}
+
+module.exports = { seedDatabase };
