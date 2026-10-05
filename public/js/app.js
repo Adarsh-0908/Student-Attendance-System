@@ -7,9 +7,9 @@ const App = (function () {
     let currentAuthMode = 'signin'; // 'signin' or 'signup'
 
     function init() {
+        setupClock();
         setupAuthTabs();
         setupForms();
-        setupClock();
         checkSession();
     }
 
@@ -36,44 +36,64 @@ const App = (function () {
         setInterval(updateClock, 1000);
     }
 
-    function setupAuthTabs() {
+    function switchTab(mode) {
+        currentAuthMode = mode;
         const tabSignin = document.getElementById('tab-btn-signin');
         const tabSignup = document.getElementById('tab-btn-signup');
         const formSignin = document.getElementById('form-faculty-login');
         const formSignup = document.getElementById('form-faculty-signup');
 
-        if (!tabSignin || !tabSignup || !formSignin || !formSignup) return;
+        if (mode === 'signup') {
+            if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+            if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
 
-        tabSignin.addEventListener('click', (e) => {
-            if (e) e.preventDefault();
-            currentAuthMode = 'signin';
-            tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
-            tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
+            if (formSignup) {
+                formSignup.classList.remove('hidden');
+                formSignup.style.display = 'block';
+            }
+            if (formSignin) {
+                formSignin.classList.add('hidden');
+                formSignin.style.display = 'none';
+            }
+        } else {
+            if (tabSignin) tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+            if (tabSignup) tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
 
-            formSignin.classList.remove('hidden');
-            formSignin.style.display = 'block';
-            formSignup.classList.add('hidden');
-            formSignup.style.display = 'none';
-        });
+            if (formSignin) {
+                formSignin.classList.remove('hidden');
+                formSignin.style.display = 'block';
+            }
+            if (formSignup) {
+                formSignup.classList.add('hidden');
+                formSignup.style.display = 'none';
+            }
+        }
+    }
 
-        tabSignup.addEventListener('click', (e) => {
-            if (e) e.preventDefault();
-            currentAuthMode = 'signup';
-            tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
-            tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
+    function setupAuthTabs() {
+        const tabSignin = document.getElementById('tab-btn-signin');
+        const tabSignup = document.getElementById('tab-btn-signup');
 
-            formSignup.classList.remove('hidden');
-            formSignup.style.display = 'block';
-            formSignin.classList.add('hidden');
-            formSignin.style.display = 'none';
-        });
+        if (tabSignin) {
+            tabSignin.onclick = (e) => {
+                if (e) e.preventDefault();
+                switchTab('signin');
+            };
+        }
+
+        if (tabSignup) {
+            tabSignup.onclick = (e) => {
+                if (e) e.preventDefault();
+                switchTab('signup');
+            };
+        }
     }
 
     function setupForms() {
         // Faculty Sign In Form
         const formSignin = document.getElementById('form-faculty-login');
         if (formSignin) {
-            formSignin.addEventListener('submit', async (e) => {
+            formSignin.onsubmit = async (e) => {
                 e.preventDefault();
                 const emailEl = document.getElementById('faculty-email');
                 const deptEl = document.getElementById('faculty-dept');
@@ -114,13 +134,13 @@ const App = (function () {
                         submitBtn.textContent = 'Sign In to Faculty Portal';
                     }
                 }
-            });
+            };
         }
 
         // Faculty Sign Up Form
         const formSignup = document.getElementById('form-faculty-signup');
         if (formSignup) {
-            formSignup.addEventListener('submit', async (e) => {
+            formSignup.onsubmit = async (e) => {
                 e.preventDefault();
                 const nameEl = document.getElementById('signup-name');
                 const emailEl = document.getElementById('signup-email');
@@ -172,12 +192,12 @@ const App = (function () {
                         submitBtn.textContent = 'Register Faculty Account';
                     }
                 }
-            });
+            };
         }
 
         // Logout Buttons
         document.querySelectorAll('.btn-logout').forEach(btn => {
-            btn.addEventListener('click', handleLogout);
+            btn.onclick = handleLogout;
         });
     }
 
@@ -265,13 +285,19 @@ const App = (function () {
 
     return {
         init,
+        switchTab,
         showLogin,
         showProfessorView
     };
 })();
 
-document.addEventListener('DOMContentLoaded', () => {
+// Immediate initialization if DOM is already ready, or on DOMContentLoaded
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
     App.init();
-});
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        App.init();
+    });
+}
 
 window.App = App;
