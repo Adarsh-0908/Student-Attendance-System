@@ -54,22 +54,12 @@ const ProfessorApp = (function () {
 
     async function fetchClassOptions() {
         try {
-            const facId = faculty ? faculty.faculty_id : 'FAC101';
-            const res = await fetch(`/api/classes/options?faculty_id=${facId}`);
+            const branch = getValue('class-branch') || (faculty ? faculty.department : 'Computer Engineering');
+            const sem = getValue('class-sem') || '5';
+            const res = await fetch(`/api/classes/options?branch=${encodeURIComponent(branch)}&semester=${sem}`);
             const data = await res.json();
             classOptions = data;
 
-            // Populate Subjects
-            const subjectSelect = document.getElementById('class-subject');
-            if (subjectSelect && data.subjects) {
-                subjectSelect.innerHTML = data.subjects.map(s => `
-                    <option value="${s.id}" data-branch="${s.branch}" data-sem="${s.semester}">
-                        ${s.code} - ${s.name}
-                    </option>
-                `).join('');
-            }
-
-            // Select default matching subject if available
             filterSubjectsByClass();
         } catch (err) {
             console.error('Error fetching class options:', err);
@@ -82,26 +72,93 @@ const ProfessorApp = (function () {
         const branch = getValue('class-branch');
         const sem = Number(getValue('class-sem'));
         const subjectSelect = document.getElementById('class-subject');
-        if (!subjectSelect) return;
 
-        const matchingSubjects = classOptions.subjects.filter(s => s.branch === branch && s.semester === sem);
+        const matchingSubjects = (classOptions.subjects || []).filter(s => s.branch === branch && s.semester === sem);
 
-        if (matchingSubjects.length > 0) {
-            subjectSelect.innerHTML = matchingSubjects.map(s => `
-                <option value="${s.id}">${s.code} - ${s.name}</option>
-            `).join('');
-        } else if (classOptions.subjects && classOptions.subjects.length > 0) {
-            subjectSelect.innerHTML = classOptions.subjects.map(s => `
-                <option value="${s.id}">${s.code} - ${s.name} (${s.branch}-S${s.semester})</option>
-            `).join('');
-        } else {
-            subjectSelect.innerHTML = `<option value="">No subjects found for this branch. Click "+ Add Subject" above.</option>`;
+        if (subjectSelect) {
+            if (matchingSubjects.length > 0) {
+                subjectSelect.innerHTML = matchingSubjects.map(s => `
+                    <option value="${s.id}">${s.code} - ${s.name}</option>
+                `).join('');
+            } else if (classOptions.subjects && classOptions.subjects.length > 0) {
+                subjectSelect.innerHTML = classOptions.subjects.map(s => `
+                    <option value="${s.id}">${s.code} - ${s.name} (${s.branch}-S${s.semester})</option>
+                `).join('');
+            } else {
+                subjectSelect.innerHTML = `<option value="">No subjects found. Click "+ Add Subject" above.</option>`;
+            }
+        }
+
+        renderManagedSubjects(matchingSubjects.length > 0 ? matchingSubjects : (classOptions.subjects || []));
+    }
+
+    function renderManagedSubjects(subjects) {
+        const listEl = document.getElementById('managed-subjects-list');
+        if (!listEl) return;
+
+        if (!subjects || subjects.length === 0) {
+            listEl.innerHTML = '<p class="text-xs text-slate-400 py-2">No subjects configured for this Branch & Semester. Click "+ Add Subject" above to add one.</p>';
+            return;
+        }
+
+        listEl.innerHTML = subjects.map(s => `
+            <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
+                <div>
+                    <span class="font-bold text-slate-900">${s.code}</span>
+                    <span class="text-slate-600 font-medium ml-1.5">${s.name}</span>
+                </div>
+                <button onclick="ProfessorApp.deleteSubject(${s.id})" type="button" class="px-2 py-1 text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all cursor-pointer">
+                    🗑️ Delete
+                </button>
+            </div>
+        `).join('');
+    }
+
+    async function deleteSubject(subjectId) {
+        if (!confirm('Are you sure you want to delete this subject?')) return;
+        try {
+            const res = await fetch('/api/subjects/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: subjectId })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || 'Failed to delete subject.');
+                return;
+            }
+            toast.success(data.message || 'Subject deleted.');
+            await fetchClassOptions();
+        } catch (err) {
+            console.error('Delete subject error:', err);
+            toast.error('Network error deleting subject.');
+        }
+    }
+
+    async function deleteStudent(studentId) {
+        if (!confirm('Are you sure you want to remove this student from the class roster?')) return;
+        try {
+            const res = await fetch('/api/students/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: studentId })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || 'Failed to remove student.');
+                return;
+            }
+            toast.success(data.message || 'Student removed.');
+            await loadRoster();
+        } catch (err) {
+            console.error('Delete student error:', err);
+            toast.error('Network error removing student.');
         }
     }
 
     function setupEventListeners() {
-        addListener('class-branch', 'change', () => { filterSubjectsByClass(); loadRoster(); });
-        addListener('class-sem', 'change', () => { filterSubjectsByClass(); loadRoster(); });
+        addListener('class-branch', 'change', async () => { await fetchClassOptions(); loadRoster(); });
+        addListener('class-sem', 'change', async () => { await fetchClassOptions(); loadRoster(); });
         addListener('class-sec', 'input', loadRoster);
         addListener('class-sec', 'change', loadRoster);
         addListener('class-subject', 'change', loadRoster);
@@ -219,14 +276,13 @@ const ProfessorApp = (function () {
         const date = getValue('class-date');
         const slot = getValue('class-slot');
 
-        if (!branch || !semester || !section || !subject_id || !date || !slot) return;
+        if (!branch || !semester || !section) return;
 
         const rosterLoading = document.getElementById('roster-loading');
-
         if (rosterLoading) rosterLoading.classList.remove('hidden');
 
         try {
-            const url = `/api/roster?branch=${encodeURIComponent(branch)}&semester=${semester}&section=${encodeURIComponent(section)}&subject_id=${subject_id}&date=${date}&slot=${encodeURIComponent(slot)}`;
+            const url = `/api/roster?branch=${encodeURIComponent(branch)}&semester=${semester}&section=${encodeURIComponent(section)}&subject_id=${subject_id || ''}&date=${date || ''}&slot=${encodeURIComponent(slot || '')}`;
             const res = await fetch(url);
             const data = await res.json();
 
@@ -264,9 +320,9 @@ const ProfessorApp = (function () {
         if (students.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="px-6 py-12 text-center text-slate-500">
-                        <p class="font-bold text-sm text-slate-700">No students found for this Branch / Section.</p>
-                        <p class="text-xs text-slate-400 mt-1">Click the "+ Add Student" button above to add students to this class.</p>
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                        <p class="font-bold text-sm text-slate-700">No students found for this Branch & Section.</p>
+                        <p class="text-xs text-slate-400 mt-1">Click the "+ Add Student" button above to add students to this class roster.</p>
                     </td>
                 </tr>
             `;
@@ -309,6 +365,11 @@ const ProfessorApp = (function () {
                                value="${student.remarks || ''}"
                                onchange="ProfessorApp.setRemarks(${student.id}, this.value)"
                                class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white" />
+                    </td>
+                    <td class="px-4 py-3.5 text-center">
+                        <button type="button" onclick="ProfessorApp.deleteStudent(${student.id})" class="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all cursor-pointer" title="Remove Student">
+                            🗑️ Remove
+                        </button>
                     </td>
                 </tr>
             `;
@@ -587,6 +648,8 @@ const ProfessorApp = (function () {
         loadDashboard,
         setStatus,
         setRemarks,
+        deleteSubject,
+        deleteStudent,
         handleExportExcel
     };
 })();

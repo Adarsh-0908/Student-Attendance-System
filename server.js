@@ -48,34 +48,27 @@ app.get('/css/:file', (req, res) => {
 // Faculty / Professor Login
 app.post('/api/auth/faculty-login', (req, res) => {
     try {
-        const { email, department, password } = req.body;
+        const { email, password } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required.' });
         }
 
+        const cleanEmail = email.trim().toLowerCase();
+
         const db = getDb();
         const faculty = db.prepare(`
             SELECT id, faculty_id, name, email, department, sub_branch, designation, password
             FROM faculty
-            WHERE email = ? OR faculty_id = ?
-        `).get(email.trim(), email.trim());
+            WHERE LOWER(email) = ? OR faculty_id = ?
+        `).get(cleanEmail, email.trim());
 
         if (!faculty) {
-            return res.status(401).json({ error: 'Faculty record not found for the given Email.' });
+            return res.status(401).json({ error: 'Faculty record not found for this Email. Please Sign Up first.' });
         }
 
         if (faculty.password !== password.trim()) {
-            return res.status(401).json({ error: 'Invalid password.' });
-        }
-
-        if (department && department.trim() && faculty.department !== department.trim()) {
-            try {
-                db.prepare('UPDATE faculty SET department = ? WHERE id = ?').run(department.trim(), faculty.id);
-                faculty.department = department.trim();
-            } catch (e) {
-                console.warn('Department update warning:', e);
-            }
+            return res.status(401).json({ error: 'Invalid password. Please check your credentials.' });
         }
 
         const { password: _, ...safeFaculty } = faculty;
@@ -97,9 +90,10 @@ app.post('/api/auth/faculty-signup', (req, res) => {
         const { name, email, department, sub_branch, designation, password } = req.body;
 
         if (!name || !email || !password) {
-            return res.status(400).json({ error: 'Name, email, and password are required for faculty registration.' });
+            return res.status(400).json({ error: 'Name, email, and password are required for registration.' });
         }
 
+        const cleanEmail = email.trim().toLowerCase();
         const cleanDept = (department || 'Computer Engineering').trim();
         const cleanSubBranch = (sub_branch || 'A').trim().toUpperCase();
         const cleanDesignation = (designation || 'Professor').trim();
@@ -108,11 +102,11 @@ app.post('/api/auth/faculty-signup', (req, res) => {
 
         // Check if email already exists
         const existing = db.prepare(`
-            SELECT id FROM faculty WHERE email = ?
-        `).get(email.trim());
+            SELECT id FROM faculty WHERE LOWER(email) = ?
+        `).get(cleanEmail);
 
         if (existing) {
-            return res.status(409).json({ error: 'Email already registered. Please sign in instead.' });
+            return res.status(409).json({ error: 'Email is already registered. Please Sign In instead.' });
         }
 
         const facultyId = 'FAC' + Math.floor(1000 + Math.random() * 9000);
@@ -125,7 +119,7 @@ app.post('/api/auth/faculty-signup', (req, res) => {
         insertStmt.run(
             facultyId,
             name.trim(),
-            email.trim(),
+            cleanEmail,
             cleanDept,
             cleanSubBranch,
             cleanDesignation,
@@ -135,8 +129,8 @@ app.post('/api/auth/faculty-signup', (req, res) => {
         const newFaculty = db.prepare(`
             SELECT id, faculty_id, name, email, department, sub_branch, designation
             FROM faculty
-            WHERE email = ?
-        `).get(email.trim());
+            WHERE LOWER(email) = ?
+        `).get(cleanEmail);
 
         return res.json({
             success: true,
@@ -151,23 +145,23 @@ app.post('/api/auth/faculty-signup', (req, res) => {
 });
 
 // ==========================================
-// 2. DATA MANAGEMENT (ADD SUBJECTS & STUDENTS)
+// 2. DATA MANAGEMENT (ADD/REMOVE SUBJECTS & STUDENTS)
 // ==========================================
 
-// Add Subject Endpoint
+// Add Subject
 app.post('/api/subjects/add', (req, res) => {
     try {
         const { code, name, branch, semester, faculty_id } = req.body;
 
-        if (!code || !name || !branch || !semester || !faculty_id) {
-            return res.status(400).json({ error: 'All fields are required to add a subject.' });
+        if (!code || !name || !branch || !semester) {
+            return res.status(400).json({ error: 'Subject code, name, branch, and semester are required.' });
         }
 
         const db = getDb();
         db.prepare(`
             INSERT INTO subjects (code, name, branch, semester, faculty_id)
             VALUES (?, ?, ?, ?, ?)
-        `).run(code.trim().toUpperCase(), name.trim(), branch.trim(), Number(semester), faculty_id.trim());
+        `).run(code.trim().toUpperCase(), name.trim(), branch.trim(), Number(semester), (faculty_id || 'FAC101').trim());
 
         return res.json({
             success: true,
@@ -182,7 +176,24 @@ app.post('/api/subjects/add', (req, res) => {
     }
 });
 
-// Add Student Endpoint
+// Delete Subject
+app.post('/api/subjects/delete', (req, res) => {
+    try {
+        const { id } = req.body;
+        if (!id) {
+            return res.status(400).json({ error: 'Subject ID is required.' });
+        }
+
+        const db = getDb();
+        db.prepare('DELETE FROM subjects WHERE id = ?').run(Number(id));
+        return res.json({ success: true, message: 'Subject deleted successfully.' });
+    } catch (err) {
+        console.error('Delete subject error:', err);
+        return res.status(500).json({ error: 'Failed to delete subject.' });
+    }
+});
+
+// Add Student
 app.post('/api/students/add', (req, res) => {
     try {
         const { roll_no, enrollment_no, name, branch, semester, section } = req.body;
@@ -206,7 +217,7 @@ app.post('/api/students/add', (req, res) => {
 
         return res.json({
             success: true,
-            message: `Student '${name.trim()}' (Roll No: ${roll_no.trim()}) added successfully!`
+            message: `Student '${name.trim()}' (Roll: ${roll_no.trim()}) added successfully!`
         });
     } catch (err) {
         if (err.message && err.message.includes('UNIQUE constraint failed')) {
@@ -214,6 +225,23 @@ app.post('/api/students/add', (req, res) => {
         }
         console.error('Add student error:', err);
         return res.status(500).json({ error: 'Failed to add student.' });
+    }
+});
+
+// Delete Student
+app.post('/api/students/delete', (req, res) => {
+    try {
+        const { id } = req.body;
+        if (!id) {
+            return res.status(400).json({ error: 'Student ID is required.' });
+        }
+
+        const db = getDb();
+        db.prepare('DELETE FROM students WHERE id = ?').run(Number(id));
+        return res.json({ success: true, message: 'Student removed successfully.' });
+    } catch (err) {
+        console.error('Delete student error:', err);
+        return res.status(500).json({ error: 'Failed to remove student.' });
     }
 });
 
@@ -225,14 +253,22 @@ app.post('/api/students/add', (req, res) => {
 app.get('/api/classes/options', (req, res) => {
     try {
         const db = getDb();
-        const faculty_id = req.query.faculty_id || 'FAC101';
+        const { branch, semester, faculty_id } = req.query;
 
-        const subjects = db.prepare(`
-            SELECT id, code, name, branch, semester
-            FROM subjects
-            WHERE faculty_id = ?
-            ORDER BY semester ASC, name ASC
-        `).all(faculty_id);
+        let query = 'SELECT id, code, name, branch, semester, faculty_id FROM subjects';
+        let params = [];
+
+        if (branch && semester) {
+            query += ' WHERE branch = ? AND semester = ?';
+            params.push(branch, Number(semester));
+        } else if (faculty_id) {
+            query += ' WHERE faculty_id = ?';
+            params.push(faculty_id);
+        }
+
+        query += ' ORDER BY semester ASC, name ASC';
+
+        const subjects = db.prepare(query).all(...params);
 
         return res.json({
             subjects: subjects
@@ -248,13 +284,13 @@ app.get('/api/roster', (req, res) => {
     try {
         const { branch, semester, section, subject_id, date, slot } = req.query;
 
-        if (!branch || !semester || !section || !subject_id || !date || !slot) {
+        if (!branch || !semester || !section) {
             return res.status(400).json({ error: 'Missing required parameters.' });
         }
 
         const db = getDb();
 
-        // 1. Fetch Students in this class
+        // Fetch Students in this class
         const students = db.prepare(`
             SELECT id, roll_no, enrollment_no, name
             FROM students
@@ -262,11 +298,14 @@ app.get('/api/roster', (req, res) => {
             ORDER BY roll_no ASC
         `).all(branch, Number(semester), section);
 
-        // 2. Check if a session already exists for this slot
-        const existingSession = db.prepare(`
-            SELECT id FROM attendance_sessions
-            WHERE branch = ? AND semester = ? AND section = ? AND subject_id = ? AND date = ? AND slot = ?
-        `).get(branch, Number(semester), section, Number(subject_id), date, slot);
+        // Check if a session already exists for this slot
+        let existingSession = null;
+        if (subject_id && date && slot) {
+            existingSession = db.prepare(`
+                SELECT id FROM attendance_sessions
+                WHERE branch = ? AND semester = ? AND section = ? AND subject_id = ? AND date = ? AND slot = ?
+            `).get(branch, Number(semester), section, Number(subject_id), date, slot);
+        }
 
         let existingRecords = {};
         if (existingSession) {
