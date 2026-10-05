@@ -63,21 +63,21 @@ app.post('/api/auth/student-login', (req, res) => {
 // Faculty / Professor Login
 app.post('/api/auth/faculty-login', (req, res) => {
     try {
-        const { faculty_id_or_email, department, password } = req.body;
+        const { email, department, password } = req.body;
 
-        if (!faculty_id_or_email || !department || !password) {
+        if (!email || !department || !password) {
             return res.status(400).json({ error: 'All fields are required.' });
         }
 
         const db = getDb();
         const faculty = db.prepare(`
-            SELECT id, faculty_id, name, email, department, designation, password
+            SELECT id, faculty_id, name, email, department, sub_branch, designation, password
             FROM faculty
-            WHERE (faculty_id = ? OR email = ?) AND department = ?
-        `).get(faculty_id_or_email.trim(), faculty_id_or_email.trim(), department.trim());
+            WHERE email = ? AND department = ?
+        `).get(email.trim(), department.trim());
 
         if (!faculty) {
-            return res.status(401).json({ error: 'Faculty record not found for the given ID/Email and Department.' });
+            return res.status(401).json({ error: 'Faculty record not found for the given Email and Department.' });
         }
 
         if (faculty.password !== password.trim()) {
@@ -100,24 +100,62 @@ app.post('/api/auth/faculty-login', (req, res) => {
 // Faculty / Professor Sign Up
 app.post('/api/auth/faculty-signup', (req, res) => {
     try {
-        const { faculty_id, name, email, department, designation, password } = req.body;
+        const { name, email, department, sub_branch, designation, password } = req.body;
 
-        if (!faculty_id || !name || !email || !department || !designation || !password) {
+        if (!name || !email || !department || !sub_branch || !designation || !password) {
             return res.status(400).json({ error: 'All fields are required for faculty registration.' });
+        }
+
+        const cleanSubBranch = sub_branch.trim().toUpperCase();
+        if (cleanSubBranch.length !== 1 || !/^[A-Z]$/.test(cleanSubBranch)) {
+            return res.status(400).json({ error: 'Sub-branch / Section must be exactly 1 alphabet letter (e.g., A, B, C).' });
         }
 
         const db = getDb();
 
-        // Check if faculty_id or email already exists
+        // Check if email already exists
         const existing = db.prepare(`
-            SELECT id FROM faculty WHERE faculty_id = ? OR email = ?
-        `).get(faculty_id.trim(), email.trim());
+            SELECT id FROM faculty WHERE email = ?
+        `).get(email.trim());
 
         if (existing) {
-            return res.status(409).json({ error: 'Faculty ID or Email already registered.' });
+            return res.status(409).json({ error: 'Email already registered.' });
         }
 
+        const facultyId = 'FAC' + Math.floor(100 + Math.random() * 900);
+
         const insertStmt = db.prepare(`
+            INSERT INTO faculty (faculty_id, name, email, department, sub_branch, designation, password)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        insertStmt.run(
+            facultyId,
+            name.trim(),
+            email.trim(),
+            department.trim(),
+            cleanSubBranch,
+            designation.trim(),
+            password.trim()
+        );
+
+        const newFaculty = db.prepare(`
+            SELECT id, faculty_id, name, email, department, sub_branch, designation
+            FROM faculty
+            WHERE email = ?
+        `).get(email.trim());
+
+        return res.json({
+            success: true,
+            userType: 'faculty',
+            faculty: newFaculty,
+            message: `Account created successfully! Welcome, ${newFaculty.name}.`
+        });
+    } catch (err) {
+        console.error('Faculty signup error:', err);
+        return res.status(500).json({ error: 'Internal server error during faculty sign up.' });
+    }
+});
             INSERT INTO faculty (faculty_id, name, email, department, designation, password)
             VALUES (?, ?, ?, ?, ?, ?)
         `);

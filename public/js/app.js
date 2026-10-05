@@ -72,7 +72,7 @@ const App = (function () {
         const formSignin = document.getElementById('form-faculty-login');
         formSignin.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const faculty_id_or_email = document.getElementById('faculty-id').value;
+            const email = document.getElementById('faculty-email').value;
             const department = document.getElementById('faculty-dept').value;
             const password = document.getElementById('faculty-password').value;
 
@@ -84,7 +84,7 @@ const App = (function () {
                 const res = await fetch('/api/auth/faculty-login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ faculty_id_or_email, department, password })
+                    body: JSON.stringify({ email, department, password })
                 });
                 const data = await res.json();
 
@@ -109,12 +109,17 @@ const App = (function () {
         const formSignup = document.getElementById('form-faculty-signup');
         formSignup.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const faculty_id = document.getElementById('signup-faculty-id').value;
             const name = document.getElementById('signup-name').value;
             const email = document.getElementById('signup-email').value;
             const department = document.getElementById('signup-dept').value;
+            const sub_branch = document.getElementById('signup-subbranch').value;
             const designation = document.getElementById('signup-designation').value;
             const password = document.getElementById('signup-password').value;
+
+            if (!/^[A-Za-z]$/.test(sub_branch)) {
+                toast.error('Sub-branch / Section must be exactly 1 alphabet letter (e.g., A, B).');
+                return;
+            }
 
             const submitBtn = formSignup.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
@@ -124,7 +129,7 @@ const App = (function () {
                 const res = await fetch('/api/auth/faculty-signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ faculty_id, name, email, department, designation, password })
+                    body: JSON.stringify({ name, email, department, sub_branch: sub_branch.toUpperCase(), designation, password })
                 });
                 const data = await res.json();
 
@@ -173,8 +178,20 @@ const App = (function () {
 
         const session = JSON.parse(localStorage.getItem('attendance_user') || 'null');
         if (session && session.faculty) {
-            document.getElementById('nav-user-name').textContent = session.faculty.name;
-            document.getElementById('nav-user-role').textContent = `Faculty (${session.faculty.faculty_id})`;
+            document.getElementById('prof-header-name').textContent = session.faculty.name;
+            document.getElementById('prof-header-dept').textContent = session.faculty.department;
+            const subBranchEl = document.getElementById('prof-header-subbranch');
+            if (subBranchEl) {
+                subBranchEl.textContent = `Sub-branch: ${session.faculty.sub_branch || 'A'} (ID: ${session.faculty.faculty_id})`;
+            }
+            const branchSel = document.getElementById('class-branch');
+            if (branchSel && session.faculty.department) {
+                branchSel.value = session.faculty.department;
+            }
+            const secInput = document.getElementById('class-sec');
+            if (secInput && session.faculty.sub_branch) {
+                secInput.value = session.faculty.sub_branch;
+            }
         }
         if (window.ProfessorApp && window.ProfessorApp.loadDashboard) {
             window.ProfessorApp.loadDashboard();

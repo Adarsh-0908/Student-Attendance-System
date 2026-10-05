@@ -93,16 +93,16 @@
                 <!-- 1. FACULTY SIGN IN FORM -->
                 <form id="form-faculty-login" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Faculty ID / Official Email</label>
-                        <input id="faculty-id" type="text" required placeholder="e.g. FAC101 or prof@college.edu"
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Official Email</label>
+                        <input id="faculty-email" type="email" required placeholder="e.g. dr.sharma@apex.edu"
                                class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department / Branch</label>
                         <select id="faculty-dept" class="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                            <option value="Electrical I">Electrical I</option>
-                            <option value="CT">CT (Computer Technology)</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="ICT">ICT</option>
                             <option value="Chemical">Chemical Engineering</option>
                             <option value="ECE">ECE (Electronics & Communication)</option>
                             <option value="Civil">Civil Engineering</option>
@@ -132,17 +132,10 @@
 
                 <!-- 2. FACULTY SIGN UP FORM -->
                 <form id="form-faculty-signup" class="space-y-4 hidden">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Faculty ID</label>
-                            <input id="signup-faculty-id" type="text" required placeholder="e.g. FAC102"
-                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name</label>
-                            <input id="signup-name" type="text" required placeholder="e.g. Dr. Alok Verma"
-                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
-                        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name</label>
+                        <input id="signup-name" type="text" required placeholder="e.g. Dr. Alok Verma"
+                               class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
                     </div>
 
                     <div>
@@ -155,8 +148,8 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department</label>
                             <select id="signup-dept" class="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                                <option value="Electrical I">Electrical I</option>
-                                <option value="CT">CT</option>
+                                <option value="Electrical">Electrical</option>
+                                <option value="ICT">ICT</option>
                                 <option value="Chemical">Chemical</option>
                                 <option value="ECE">ECE</option>
                                 <option value="Civil">Civil</option>
@@ -169,10 +162,16 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Designation</label>
-                            <input id="signup-designation" type="text" required placeholder="e.g. Associate Professor"
-                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Sub-Branch / Sec</label>
+                            <input id="signup-subbranch" type="text" maxlength="1" required placeholder="A" title="1 alphabet letter only (e.g. A)"
+                                   class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 uppercase text-center font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Designation</label>
+                        <input id="signup-designation" type="text" required placeholder="e.g. Associate Professor"
+                               class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
                     </div>
 
                     <div>
@@ -206,7 +205,7 @@
                         <div class="flex flex-wrap items-center gap-2 mt-1">
                             <span id="prof-header-dept" class="text-xs font-medium text-slate-600">Department</span>
                             <span class="text-slate-300">•</span>
-                            <span id="prof-header-id" class="text-xs font-mono text-slate-500">ID: -</span>
+                            <span id="prof-header-subbranch" class="text-xs font-semibold text-indigo-600">Sub-branch: A</span>
                         </div>
                     </div>
                 </div>
@@ -243,8 +242,8 @@
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Branch</label>
                         <select id="class-branch" class="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                             <option value="Computer Engineering" selected>Computer Engineering</option>
-                            <option value="Electrical I">Electrical I</option>
-                            <option value="CT">CT</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="ICT">ICT</option>
                             <option value="Chemical">Chemical</option>
                             <option value="ECE">ECE</option>
                             <option value="Civil">Civil</option>
@@ -271,14 +270,11 @@
                         </select>
                     </div>
 
-                    <!-- Section -->
+                    <!-- Sub-Branch / Section (1 Alphabet) -->
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Section</label>
-                        <select id="class-sec" class="w-full text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                            <option value="A" selected>Section A</option>
-                            <option value="B">Section B</option>
-                            <option value="C">Section C</option>
-                        </select>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1" title="Sub division name (1 alphabet, e.g. A)">Sub-Branch / Sec</label>
+                        <input id="class-sec" type="text" maxlength="1" value="A" placeholder="A" title="1 alphabet letter only"
+                               class="w-full text-xs font-bold text-center px-2.5 py-2 rounded-xl border border-slate-200 bg-white uppercase font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                     </div>
 
                     <!-- Subject -->

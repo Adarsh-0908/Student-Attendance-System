@@ -17,15 +17,16 @@ function seedDatabase() {
 
     // 1. Seed Faculty (1 Professor)
     const insertFaculty = db.prepare(`
-        INSERT INTO faculty (faculty_id, name, email, department, designation, password)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO faculty (faculty_id, name, email, department, sub_branch, designation, password)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     insertFaculty.run(
         'FAC101',
         'Dr. Rajesh Sharma',
         'dr.sharma@apex.edu',
-        'CSE',
+        'Computer Engineering',
+        'A',
         'Associate Professor & HOD',
         'password123'
     );
@@ -37,28 +38,28 @@ function seedDatabase() {
     `);
 
     const subjects = [
-        { code: 'CS501', name: 'Database Management Systems', branch: 'CSE', semester: 5, faculty_id: 'FAC101' },
-        { code: 'CS502', name: 'Operating Systems', branch: 'CSE', semester: 5, faculty_id: 'FAC101' },
-        { code: 'CS503', name: 'Computer Networks', branch: 'CSE', semester: 5, faculty_id: 'FAC101' },
-        { code: 'CS504', name: 'Design & Analysis of Algorithms', branch: 'CSE', semester: 5, faculty_id: 'FAC101' }
+        { code: 'CS501', name: 'Database Management Systems', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CS502', name: 'Operating Systems', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CS503', name: 'Computer Networks', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' },
+        { code: 'CS504', name: 'Design & Analysis of Algorithms', branch: 'Computer Engineering', semester: 5, faculty_id: 'FAC101' }
     ];
 
     for (const sub of subjects) {
         insertSubject.run(sub.code, sub.name, sub.branch, sub.semester, sub.faculty_id);
     }
 
-    // 3. Seed Students (5 Students in CSE, Sem 5, Sec A)
+    // 3. Seed Students (5 Students in Computer Engineering, Sem 5, Sec A)
     const insertStudent = db.prepare(`
         INSERT INTO students (roll_no, enrollment_no, name, branch, semester, section, dob, password)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const students = [
-        { roll_no: '101', enrollment_no: 'ENR20240101', name: 'Aarav Sharma', branch: 'CSE', semester: 5, section: 'A', dob: '2004-03-15', password: 'password123' },
-        { roll_no: '102', enrollment_no: 'ENR20240102', name: 'Ananya Patel', branch: 'CSE', semester: 5, section: 'A', dob: '2004-07-22', password: 'password123' },
-        { roll_no: '103', enrollment_no: 'ENR20240103', name: 'Rohan Gupta', branch: 'CSE', semester: 5, section: 'A', dob: '2004-11-05', password: 'password123' },
-        { roll_no: '104', enrollment_no: 'ENR20240104', name: 'Isha Verma', branch: 'CSE', semester: 5, section: 'A', dob: '2004-01-30', password: 'password123' },
-        { roll_no: '105', enrollment_no: 'ENR20240105', name: 'Kabir Mehta', branch: 'CSE', semester: 5, section: 'A', dob: '2004-09-18', password: 'password123' }
+        { roll_no: '101', enrollment_no: 'ENR20240101', name: 'Aarav Sharma', branch: 'Computer Engineering', semester: 5, section: 'A', dob: '2004-03-15', password: 'password123' },
+        { roll_no: '102', enrollment_no: 'ENR20240102', name: 'Ananya Patel', branch: 'Computer Engineering', semester: 5, section: 'A', dob: '2004-07-22', password: 'password123' },
+        { roll_no: '103', enrollment_no: 'ENR20240103', name: 'Rohan Gupta', branch: 'Computer Engineering', semester: 5, section: 'A', dob: '2004-11-05', password: 'password123' },
+        { roll_no: '104', enrollment_no: 'ENR20240104', name: 'Isha Verma', branch: 'Computer Engineering', semester: 5, section: 'A', dob: '2004-01-30', password: 'password123' },
+        { roll_no: '105', enrollment_no: 'ENR20240105', name: 'Kabir Mehta', branch: 'Computer Engineering', semester: 5, section: 'A', dob: '2004-09-18', password: 'password123' }
     ];
 
     for (const st of students) {
@@ -73,7 +74,6 @@ function seedDatabase() {
     const cnSub = subjectRows.find(s => s.code === 'CS503');
 
     // 4. Seed Historical Attendance Sessions & Records
-    // Let's create realistic past sessions in September/October 2026
     const insertSession = db.prepare(`
         INSERT INTO attendance_sessions (session_uuid, branch, semester, section, subject_id, faculty_id, date, slot)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -83,14 +83,6 @@ function seedDatabase() {
         INSERT INTO attendance_records (session_id, student_id, status, remarks)
         VALUES (?, ?, ?, ?)
     `);
-
-    // Predefined sessions with dates and attendance patterns
-    // Student patterns:
-    // Aarav (101): High attendance (~88%)
-    // Ananya (102): High attendance (~90%)
-    // Rohan (103): Low attendance (~60%) -> Triggers <75% Warning Red Banner!
-    // Isha (104): Moderate-high (~80%)
-    // Kabir (105): Low attendance (~68%) -> Triggers <75% Warning Red Banner!
 
     const historicalSessions = [
         {
@@ -129,7 +121,6 @@ function seedDatabase() {
             slot: '09:00 AM - 10:00 AM',
             statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'P' }
         },
-        // Operating Systems sessions
         {
             subject: osSub.id,
             date: '2026-09-16',
@@ -148,7 +139,6 @@ function seedDatabase() {
             slot: '10:00 AM - 11:00 AM',
             statuses: { '101': 'P', '102': 'P', '103': 'A', '104': 'P', '105': 'A' }
         },
-        // Computer Networks sessions
         {
             subject: cnSub.id,
             date: '2026-09-17',
@@ -173,7 +163,7 @@ function seedDatabase() {
         const uuid = crypto.randomUUID();
         insertSession.run(
             uuid,
-            'CSE',
+            'Computer Engineering',
             5,
             'A',
             sess.subject,
@@ -191,10 +181,6 @@ function seedDatabase() {
     }
 
     console.log(`Database seeded successfully!`);
-    console.log(`- 1 Faculty: Dr. Rajesh Sharma (FAC101 / password123)`);
-    console.log(`- 5 Students seeded in CSE Sem 5 Sec A (Roll 101 to 105)`);
-    console.log(`- 4 Subjects seeded`);
-    console.log(`- 12 Historical Attendance Sessions with multi-date matrix records seeded`);
 }
 
 if (require.main === module) {
