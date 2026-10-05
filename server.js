@@ -156,36 +156,6 @@ app.post('/api/auth/faculty-signup', (req, res) => {
         return res.status(500).json({ error: 'Internal server error during faculty sign up.' });
     }
 });
-            INSERT INTO faculty (faculty_id, name, email, department, designation, password)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        insertStmt.run(
-            faculty_id.trim(),
-            name.trim(),
-            email.trim(),
-            department.trim(),
-            designation.trim(),
-            password.trim()
-        );
-
-        const newFaculty = db.prepare(`
-            SELECT id, faculty_id, name, email, department, designation
-            FROM faculty
-            WHERE faculty_id = ?
-        `).get(faculty_id.trim());
-
-        return res.json({
-            success: true,
-            userType: 'faculty',
-            faculty: newFaculty,
-            message: `Account created successfully! Welcome, ${newFaculty.name}.`
-        });
-    } catch (err) {
-        console.error('Faculty signup error:', err);
-        return res.status(500).json({ error: 'Internal server error during faculty sign up.' });
-    }
-});
 
 // ==========================================
 // 2. PROFESSOR DASHBOARD & ROSTER ROUTES
