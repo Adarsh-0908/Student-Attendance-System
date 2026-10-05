@@ -1,16 +1,18 @@
 {
   "version": 2,
+  "functions": {
+    "server.js": {
+      "includeFiles": ["public/**", "database/**"]
+    }
+  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "handle": "filesystem"
+      "dest": "server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "server.js"
     }
   ]
 }

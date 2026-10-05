@@ -521,7 +521,7 @@ app.get('/api/attendance/export-excel', (req, res) => {
 
 // Fallback route for SPA
 app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.includes('.')) {
         return res.sendFile(path.join(publicPath, 'index.html'));
     }
     next();
