@@ -97,6 +97,58 @@ app.post('/api/auth/faculty-login', (req, res) => {
     }
 });
 
+// Faculty / Professor Sign Up
+app.post('/api/auth/faculty-signup', (req, res) => {
+    try {
+        const { faculty_id, name, email, department, designation, password } = req.body;
+
+        if (!faculty_id || !name || !email || !department || !designation || !password) {
+            return res.status(400).json({ error: 'All fields are required for faculty registration.' });
+        }
+
+        const db = getDb();
+
+        // Check if faculty_id or email already exists
+        const existing = db.prepare(`
+            SELECT id FROM faculty WHERE faculty_id = ? OR email = ?
+        `).get(faculty_id.trim(), email.trim());
+
+        if (existing) {
+            return res.status(409).json({ error: 'Faculty ID or Email already registered.' });
+        }
+
+        const insertStmt = db.prepare(`
+            INSERT INTO faculty (faculty_id, name, email, department, designation, password)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+
+        insertStmt.run(
+            faculty_id.trim(),
+            name.trim(),
+            email.trim(),
+            department.trim(),
+            designation.trim(),
+            password.trim()
+        );
+
+        const newFaculty = db.prepare(`
+            SELECT id, faculty_id, name, email, department, designation
+            FROM faculty
+            WHERE faculty_id = ?
+        `).get(faculty_id.trim());
+
+        return res.json({
+            success: true,
+            userType: 'faculty',
+            faculty: newFaculty,
+            message: `Account created successfully! Welcome, ${newFaculty.name}.`
+        });
+    } catch (err) {
+        console.error('Faculty signup error:', err);
+        return res.status(500).json({ error: 'Internal server error during faculty sign up.' });
+    }
+});
+
 // ==========================================
 // 2. PROFESSOR DASHBOARD & ROSTER ROUTES
 // ==========================================
