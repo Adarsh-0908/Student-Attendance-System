@@ -46,6 +46,12 @@ function request(method, path, body = null) {
 }
 
 async function runAllTests() {
+    try {
+        require('./database/seed').seedDatabase();
+    } catch (e) {
+        console.warn('Seed reset warning:', e);
+    }
+
     console.log('\n--- 1. Testing Faculty Login ---');
     const facRes = await request('POST', '/api/auth/faculty-login', {
         email: 'dr.sharma@apex.edu',
@@ -59,7 +65,7 @@ async function runAllTests() {
     console.log('\n--- 2. Testing Faculty Sign Up ---');
     const signupRes = await request('POST', '/api/auth/faculty-signup', {
         name: 'Dr. Test Professor',
-        email: 'test.prof@apex.edu',
+        email: `test.prof.${Date.now()}@apex.edu`,
         department: 'ICT',
         sub_branch: 'B',
         designation: 'Assistant Professor',

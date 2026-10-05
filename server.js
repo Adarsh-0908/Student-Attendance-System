@@ -111,14 +111,13 @@ app.post('/api/auth/faculty-signup', (req, res) => {
     try {
         const { name, email, department, sub_branch, designation, password } = req.body;
 
-        if (!name || !email || !department || !sub_branch || !designation || !password) {
-            return res.status(400).json({ error: 'All fields are required for faculty registration.' });
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Name, email, and password are required for faculty registration.' });
         }
 
-        const cleanSubBranch = sub_branch.trim().toUpperCase();
-        if (cleanSubBranch.length !== 1 || !/^[A-Z]$/.test(cleanSubBranch)) {
-            return res.status(400).json({ error: 'Sub-branch / Section must be exactly 1 alphabet letter (e.g., A, B, C).' });
-        }
+        const cleanDept = (department || 'Computer Engineering').trim();
+        const cleanSubBranch = (sub_branch || 'A').trim().toUpperCase();
+        const cleanDesignation = (designation || 'Professor').trim();
 
         const db = getDb();
 
@@ -128,10 +127,10 @@ app.post('/api/auth/faculty-signup', (req, res) => {
         `).get(email.trim());
 
         if (existing) {
-            return res.status(409).json({ error: 'Email already registered.' });
+            return res.status(409).json({ error: 'Email already registered. Please sign in instead.' });
         }
 
-        const facultyId = 'FAC' + Math.floor(100 + Math.random() * 900);
+        const facultyId = 'FAC' + Math.floor(1000 + Math.random() * 9000);
 
         const insertStmt = db.prepare(`
             INSERT INTO faculty (faculty_id, name, email, department, sub_branch, designation, password)
@@ -142,9 +141,9 @@ app.post('/api/auth/faculty-signup', (req, res) => {
             facultyId,
             name.trim(),
             email.trim(),
-            department.trim(),
+            cleanDept,
             cleanSubBranch,
-            designation.trim(),
+            cleanDesignation,
             password.trim()
         );
 

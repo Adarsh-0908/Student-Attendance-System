@@ -112,12 +112,12 @@ const App = (function () {
             const name = document.getElementById('signup-name').value;
             const email = document.getElementById('signup-email').value;
             const department = document.getElementById('signup-dept').value;
-            const sub_branch = document.getElementById('signup-subbranch').value;
-            const designation = document.getElementById('signup-designation').value;
+            const sub_branch = document.getElementById('signup-subbranch').value || 'A';
+            const designation = document.getElementById('signup-designation').value || 'Professor';
             const password = document.getElementById('signup-password').value;
 
-            if (!/^[A-Za-z]$/.test(sub_branch)) {
-                toast.error('Sub-branch / Section must be exactly 1 alphabet letter (e.g., A, B).');
+            if (!name || !email || !password) {
+                toast.error('Please fill in your name, email, and password.');
                 return;
             }
 
@@ -129,7 +129,7 @@ const App = (function () {
                 const res = await fetch('/api/auth/faculty-signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, department, sub_branch: sub_branch.toUpperCase(), designation, password })
+                    body: JSON.stringify({ name, email, department, sub_branch, designation, password })
                 });
                 const data = await res.json();
 
