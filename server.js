@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const { getDb, initDb } = require('./database/db');
 const { generateCumulativeAttendanceExcel } = require('./services/excelService');
@@ -11,11 +12,33 @@ const PORT = process.env.PORT || 3000;
 // Initialize Database & Tables
 initDb();
 
+// Determine static assets directory
+const publicPath = fs.existsSync(path.join(__dirname, 'public'))
+    ? path.join(__dirname, 'public')
+    : path.join(process.cwd(), 'public');
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(publicPath));
+
+// Explicit static routes for JS and CSS files
+app.get('/js/:file', (req, res) => {
+    const filePath = path.join(publicPath, 'js', req.params.file);
+    if (fs.existsSync(filePath)) {
+        return res.sendFile(filePath);
+    }
+    res.status(404).send('JavaScript file not found');
+});
+
+app.get('/css/:file', (req, res) => {
+    const filePath = path.join(publicPath, 'css', req.params.file);
+    if (fs.existsSync(filePath)) {
+        return res.sendFile(filePath);
+    }
+    res.status(404).send('CSS file not found');
+});
 
 // ==========================================
 // 1. AUTHENTICATION ROUTES
