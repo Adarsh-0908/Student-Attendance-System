@@ -82,10 +82,10 @@
 
                 <!-- Auth Mode Tabs (Sign In vs Sign Up) -->
                 <div class="flex p-1 bg-slate-100 rounded-xl mb-6 border border-slate-200/60">
-                    <button id="tab-btn-signin" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm">
+                    <button id="tab-btn-signin" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer">
                         Faculty Sign In
                     </button>
-                    <button id="tab-btn-signup" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900">
+                    <button id="tab-btn-signup" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer">
                         Faculty Sign Up
                     </button>
                 </div>
@@ -122,16 +122,21 @@
                         <span class="text-[11px] text-slate-400 mt-1 block">Seed Faculty password: <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">password123</code></span>
                     </div>
 
-                    <button type="submit" class="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
                         Sign In to Faculty Portal
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                         </svg>
                     </button>
+
+                    <p class="text-center text-xs text-slate-500 mt-4">
+                        Don't have an account?
+                        <button type="button" onclick="document.getElementById('tab-btn-signup').click()" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign Up here</button>
+                    </p>
                 </form>
 
                 <!-- 2. FACULTY SIGN UP FORM -->
-                <form id="form-faculty-signup" class="space-y-4 hidden">
+                <form id="form-faculty-signup" class="space-y-4 hidden" style="display: none;">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name</label>
                         <input id="signup-name" type="text" required placeholder="e.g. Dr. Alok Verma"
@@ -180,12 +185,17 @@
                                class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
                     </div>
 
-                    <button type="submit" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
                         Register Faculty Account
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                         </svg>
                     </button>
+
+                    <p class="text-center text-xs text-slate-500 mt-4">
+                        Already have an account?
+                        <button type="button" onclick="document.getElementById('tab-btn-signin').click()" class="font-bold text-indigo-600 hover:underline cursor-pointer">Sign In here</button>
+                    </p>
                 </form>
             </div>
         </section>
@@ -193,7 +203,7 @@
         <!-- ========================================================= -->
         <!-- VIEW 2: PROFESSOR / FACULTY DASHBOARD                     -->
         <!-- ========================================================= -->
-        <section id="professor-view" class="hidden space-y-6">
+        <section id="professor-view" class="hidden space-y-6" style="display: none;">
             <!-- Faculty Header Card -->
             <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div class="flex items-center gap-4">

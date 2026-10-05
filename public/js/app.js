@@ -42,113 +42,138 @@ const App = (function () {
         const formSignin = document.getElementById('form-faculty-login');
         const formSignup = document.getElementById('form-faculty-signup');
 
-        if (!tabSignin || !tabSignup) return;
+        if (!tabSignin || !tabSignup || !formSignin || !formSignup) return;
 
-        tabSignin.addEventListener('click', () => {
+        tabSignin.addEventListener('click', (e) => {
+            if (e) e.preventDefault();
             currentAuthMode = 'signin';
-            tabSignin.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
-            tabSignin.classList.remove('text-slate-500');
-            tabSignup.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
-            tabSignup.classList.add('text-slate-500');
+            tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+            tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
 
             formSignin.classList.remove('hidden');
+            formSignin.style.display = 'block';
             formSignup.classList.add('hidden');
+            formSignup.style.display = 'none';
         });
 
-        tabSignup.addEventListener('click', () => {
+        tabSignup.addEventListener('click', (e) => {
+            if (e) e.preventDefault();
             currentAuthMode = 'signup';
-            tabSignup.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
-            tabSignup.classList.remove('text-slate-500');
-            tabSignin.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
-            tabSignin.classList.add('text-slate-500');
+            tabSignup.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-slate-900 shadow-sm cursor-pointer';
+            tabSignin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer';
 
             formSignup.classList.remove('hidden');
+            formSignup.style.display = 'block';
             formSignin.classList.add('hidden');
+            formSignin.style.display = 'none';
         });
     }
 
     function setupForms() {
         // Faculty Sign In Form
         const formSignin = document.getElementById('form-faculty-login');
-        formSignin.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('faculty-email').value;
-            const department = document.getElementById('faculty-dept').value;
-            const password = document.getElementById('faculty-password').value;
+        if (formSignin) {
+            formSignin.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const emailEl = document.getElementById('faculty-email');
+                const deptEl = document.getElementById('faculty-dept');
+                const passEl = document.getElementById('faculty-password');
 
-            const submitBtn = formSignin.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Authenticating...';
+                const email = emailEl ? emailEl.value : '';
+                const department = deptEl ? deptEl.value : '';
+                const password = passEl ? passEl.value : '';
 
-            try {
-                const res = await fetch('/api/auth/faculty-login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, department, password })
-                });
-                const data = await res.json();
-
-                if (!res.ok) {
-                    toast.error(data.error || 'Faculty authentication failed.');
-                    return;
+                const submitBtn = formSignin.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Authenticating...';
                 }
 
-                localStorage.setItem('attendance_user', JSON.stringify(data));
-                toast.success(`Welcome back, ${data.faculty.name}`, 'Faculty Authenticated');
-                showProfessorView();
-            } catch (err) {
-                console.error('Faculty login error:', err);
-                toast.error('Network error during login.');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Sign In to Faculty Portal';
-            }
-        });
+                try {
+                    const res = await fetch('/api/auth/faculty-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, department, password })
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        toast.error(data.error || 'Faculty authentication failed.');
+                        return;
+                    }
+
+                    localStorage.setItem('attendance_user', JSON.stringify(data));
+                    toast.success(`Welcome back, ${data.faculty.name}`, 'Faculty Authenticated');
+                    showProfessorView();
+                } catch (err) {
+                    console.error('Faculty login error:', err);
+                    toast.error('Network error during login.');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Sign In to Faculty Portal';
+                    }
+                }
+            });
+        }
 
         // Faculty Sign Up Form
         const formSignup = document.getElementById('form-faculty-signup');
-        formSignup.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('signup-name').value;
-            const email = document.getElementById('signup-email').value;
-            const department = document.getElementById('signup-dept').value;
-            const sub_branch = document.getElementById('signup-subbranch').value || 'A';
-            const designation = document.getElementById('signup-designation').value || 'Professor';
-            const password = document.getElementById('signup-password').value;
+        if (formSignup) {
+            formSignup.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nameEl = document.getElementById('signup-name');
+                const emailEl = document.getElementById('signup-email');
+                const deptEl = document.getElementById('signup-dept');
+                const subBranchEl = document.getElementById('signup-subbranch');
+                const desigEl = document.getElementById('signup-designation');
+                const passEl = document.getElementById('signup-password');
 
-            if (!name || !email || !password) {
-                toast.error('Please fill in your name, email, and password.');
-                return;
-            }
+                const name = nameEl ? nameEl.value : '';
+                const email = emailEl ? emailEl.value : '';
+                const department = deptEl ? deptEl.value : '';
+                const sub_branch = (subBranchEl ? subBranchEl.value : '') || 'A';
+                const designation = (desigEl ? desigEl.value : '') || 'Professor';
+                const password = passEl ? passEl.value : '';
 
-            const submitBtn = formSignup.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating Account...';
-
-            try {
-                const res = await fetch('/api/auth/faculty-signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, department, sub_branch, designation, password })
-                });
-                const data = await res.json();
-
-                if (!res.ok) {
-                    toast.error(data.error || 'Faculty registration failed.');
+                if (!name || !email || !password) {
+                    toast.error('Please fill in your name, email, and password.');
                     return;
                 }
 
-                localStorage.setItem('attendance_user', JSON.stringify(data));
-                toast.success(`Account created! Welcome, ${data.faculty.name}`, 'Registration Successful');
-                showProfessorView();
-            } catch (err) {
-                console.error('Faculty signup error:', err);
-                toast.error('Network error during registration.');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register Faculty Account';
-            }
-        });
+                const submitBtn = formSignup.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Creating Account...';
+                }
+
+                try {
+                    const res = await fetch('/api/auth/faculty-signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, department, sub_branch, designation, password })
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        toast.error(data.error || 'Faculty registration failed.');
+                        return;
+                    }
+
+                    localStorage.setItem('attendance_user', JSON.stringify(data));
+                    toast.success(`Account created! Welcome, ${data.faculty.name}`, 'Registration Successful');
+                    showProfessorView();
+                } catch (err) {
+                    console.error('Faculty signup error:', err);
+                    toast.error('Network error during registration.');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Register Faculty Account';
+                    }
+                }
+            });
+        }
 
         // Logout Buttons
         document.querySelectorAll('.btn-logout').forEach(btn => {
@@ -158,7 +183,7 @@ const App = (function () {
 
     function checkSession() {
         const session = JSON.parse(localStorage.getItem('attendance_user') || 'null');
-        if (session && session.userType === 'faculty') {
+        if (session && session.userType === 'faculty' && session.faculty) {
             showProfessorView();
         } else {
             showLogin();
@@ -166,33 +191,67 @@ const App = (function () {
     }
 
     function showLogin() {
-        document.getElementById('auth-view').classList.remove('hidden');
-        document.getElementById('professor-view').classList.add('hidden');
-        document.getElementById('nav-user-profile').classList.add('hidden');
+        const authView = document.getElementById('auth-view');
+        if (authView) {
+            authView.classList.remove('hidden');
+            authView.style.display = 'block';
+        }
+        const profView = document.getElementById('professor-view');
+        if (profView) {
+            profView.classList.add('hidden');
+            profView.style.display = 'none';
+        }
+        const navProfile = document.getElementById('nav-user-profile');
+        if (navProfile) {
+            navProfile.classList.add('hidden');
+            navProfile.style.display = 'none';
+        }
     }
 
     function showProfessorView() {
-        document.getElementById('auth-view').classList.add('hidden');
-        document.getElementById('professor-view').classList.remove('hidden');
-        document.getElementById('nav-user-profile').classList.remove('hidden');
-
         const session = JSON.parse(localStorage.getItem('attendance_user') || 'null');
-        if (session && session.faculty) {
-            document.getElementById('prof-header-name').textContent = session.faculty.name;
-            document.getElementById('prof-header-dept').textContent = session.faculty.department;
-            const subBranchEl = document.getElementById('prof-header-subbranch');
-            if (subBranchEl) {
-                subBranchEl.textContent = `Sub-branch: ${session.faculty.sub_branch || 'A'} (ID: ${session.faculty.faculty_id})`;
-            }
-            const branchSel = document.getElementById('class-branch');
-            if (branchSel && session.faculty.department) {
-                branchSel.value = session.faculty.department;
-            }
-            const secInput = document.getElementById('class-sec');
-            if (secInput && session.faculty.sub_branch) {
-                secInput.value = session.faculty.sub_branch;
-            }
+        if (!session || !session.faculty) {
+            showLogin();
+            return;
         }
+
+        const authView = document.getElementById('auth-view');
+        if (authView) {
+            authView.classList.add('hidden');
+            authView.style.display = 'none';
+        }
+        const profView = document.getElementById('professor-view');
+        if (profView) {
+            profView.classList.remove('hidden');
+            profView.style.display = 'block';
+        }
+        const navProfile = document.getElementById('nav-user-profile');
+        if (navProfile) {
+            navProfile.classList.remove('hidden');
+            navProfile.style.display = 'flex';
+        }
+
+        const faculty = session.faculty;
+        const nameEl = document.getElementById('prof-header-name');
+        if (nameEl) nameEl.textContent = faculty.name;
+
+        const deptEl = document.getElementById('prof-header-dept');
+        if (deptEl) deptEl.textContent = `${faculty.designation || 'Professor'} • Dept. of ${faculty.department}`;
+
+        const subBranchEl = document.getElementById('prof-header-subbranch');
+        if (subBranchEl) {
+            subBranchEl.textContent = `Sub-branch: ${faculty.sub_branch || 'A'}`;
+        }
+
+        const branchSel = document.getElementById('class-branch');
+        if (branchSel && faculty.department) {
+            branchSel.value = faculty.department;
+        }
+        const secInput = document.getElementById('class-sec');
+        if (secInput && faculty.sub_branch) {
+            secInput.value = faculty.sub_branch;
+        }
+
         if (window.ProfessorApp && window.ProfessorApp.loadDashboard) {
             window.ProfessorApp.loadDashboard();
         }
