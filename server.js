@@ -65,23 +65,32 @@ app.post('/api/auth/faculty-login', (req, res) => {
     try {
         const { email, department, password } = req.body;
 
-        if (!email || !department || !password) {
-            return res.status(400).json({ error: 'All fields are required.' });
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required.' });
         }
 
         const db = getDb();
         const faculty = db.prepare(`
             SELECT id, faculty_id, name, email, department, sub_branch, designation, password
             FROM faculty
-            WHERE email = ? AND department = ?
-        `).get(email.trim(), department.trim());
+            WHERE email = ? OR faculty_id = ?
+        `).get(email.trim(), email.trim());
 
         if (!faculty) {
-            return res.status(401).json({ error: 'Faculty record not found for the given Email and Department.' });
+            return res.status(401).json({ error: 'Faculty record not found for the given Email.' });
         }
 
         if (faculty.password !== password.trim()) {
             return res.status(401).json({ error: 'Invalid password.' });
+        }
+
+        if (department && department.trim() && faculty.department !== department.trim()) {
+            try {
+                db.prepare('UPDATE faculty SET department = ? WHERE id = ?').run(department.trim(), faculty.id);
+                faculty.department = department.trim();
+            } catch (e) {
+                console.warn('Department update warning:', e);
+            }
         }
 
         const { password: _, ...safeFaculty } = faculty;

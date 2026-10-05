@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 
-// Try loading native node:sqlite (Node 22+) or better-sqlite3 (Node 18/20/22/24)
 let DatabaseClass = null;
 
 try {
@@ -139,17 +138,6 @@ function initDb() {
         console.warn('Exec schema error:', e);
     }
 
-    if (isVercel) {
-        try {
-            const fCount = db.prepare("SELECT count(*) as count FROM faculty").get();
-            if (!fCount || fCount.count === 0) {
-                const { seedDatabase } = require('./seed');
-                seedDatabase();
-            }
-        } catch (e) {
-            console.error('Auto-seed check error on Vercel:', e);
-        }
-    }
     return db;
 }
 

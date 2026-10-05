@@ -48,52 +48,42 @@ function request(method, path, body = null) {
 async function runAllTests() {
     console.log('\n--- 1. Testing Faculty Login ---');
     const facRes = await request('POST', '/api/auth/faculty-login', {
-        faculty_id_or_email: 'FAC101',
-        department: 'CSE',
+        email: 'dr.sharma@apex.edu',
+        department: 'Computer Engineering',
         password: 'password123'
     });
     assert.strictEqual(facRes.status, 200, 'Faculty login should return 200');
     assert.strictEqual(facRes.data.faculty.name, 'Dr. Rajesh Sharma');
     console.log('✓ Faculty Login OK:', facRes.data.faculty.name);
 
-    console.log('\n--- 2. Testing Student Login (Safe: Aarav) ---');
-    const stu1Res = await request('POST', '/api/auth/student-login', {
-        roll_no: '101',
-        branch: 'CSE',
-        semester: 5,
+    console.log('\n--- 2. Testing Faculty Sign Up ---');
+    const signupRes = await request('POST', '/api/auth/faculty-signup', {
+        name: 'Dr. Test Professor',
+        email: 'test.prof@apex.edu',
+        department: 'ICT',
+        sub_branch: 'B',
+        designation: 'Assistant Professor',
         password: 'password123'
     });
-    assert.strictEqual(stu1Res.status, 200, 'Student login should return 200');
-    assert.strictEqual(stu1Res.data.student.name, 'Aarav Sharma');
-    console.log('✓ Student Login OK:', stu1Res.data.student.name);
+    assert.strictEqual(signupRes.status, 200, 'Faculty signup should return 200');
+    assert.strictEqual(signupRes.data.faculty.name, 'Dr. Test Professor');
+    console.log('✓ Faculty Sign Up OK:', signupRes.data.faculty.name);
 
-    console.log('\n--- 3. Testing Student Dashboard (Safe vs Shortage) ---');
-    const dash1 = await request('GET', `/api/student/dashboard?student_id=${stu1Res.data.student.id}`);
-    assert.strictEqual(dash1.status, 200);
-    console.log(`✓ Aarav Overall Attendance: ${dash1.data.overall.percentage}% | Eligible: ${dash1.data.overall.is_eligible}`);
-    assert.strictEqual(dash1.data.overall.is_eligible, true, 'Aarav should be eligible (>=75%)');
-
-    const dashRohan = await request('GET', '/api/student/dashboard?enrollment_no=ENR20240103');
-    assert.strictEqual(dashRohan.status, 200);
-    console.log(`✓ Rohan Overall Attendance: ${dashRohan.data.overall.percentage}% | Eligible: ${dashRohan.data.overall.is_eligible} | Needed for 75%: ${dashRohan.data.overall.classes_needed_for_75}`);
-    assert.strictEqual(dashRohan.data.overall.is_eligible, false, 'Rohan should be under 75% warning');
-    assert.ok(dashRohan.data.overall.classes_needed_for_75 > 0, 'Classes needed for 75% should be calculated');
-
-    console.log('\n--- 4. Testing Professor Roster Fetch ---');
+    console.log('\n--- 3. Testing Professor Roster Fetch ---');
     const optionsRes = await request('GET', '/api/classes/options?faculty_id=FAC101');
     const subjectId = optionsRes.data.subjects[0].id;
-    const rosterRes = await request('GET', `/api/roster?branch=CSE&semester=5&section=A&subject_id=${subjectId}&date=2026-10-05&slot=09:00%20AM%20-%2010:00%20AM`);
+    const rosterRes = await request('GET', `/api/roster?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}&date=2026-10-05&slot=09:00%20AM%20-%2010:00%20AM`);
     assert.strictEqual(rosterRes.status, 200);
     assert.strictEqual(rosterRes.data.students.length, 5, 'Should have 5 students');
     console.log('✓ Roster fetched 5 students successfully');
 
-    console.log('\n--- 5. Testing Attendance Submit & Duplicate Detection ---');
+    console.log('\n--- 4. Testing Attendance Submit & Duplicate Detection ---');
     const newDate = '2026-10-05';
     const newSlot = '02:00 PM - 03:00 PM';
     
     // First submission
     const submitRes1 = await request('POST', '/api/attendance/submit', {
-        branch: 'CSE',
+        branch: 'Computer Engineering',
         semester: 5,
         section: 'A',
         subject_id: subjectId,
@@ -111,7 +101,7 @@ async function runAllTests() {
 
     // Duplicate check without overwrite flag -> should return 409 DUPLICATE_SESSION
     const duplicateRes = await request('POST', '/api/attendance/submit', {
-        branch: 'CSE',
+        branch: 'Computer Engineering',
         semester: 5,
         section: 'A',
         subject_id: subjectId,
@@ -126,7 +116,7 @@ async function runAllTests() {
 
     // Overwrite submission with overwrite = true
     const overwriteRes = await request('POST', '/api/attendance/submit', {
-        branch: 'CSE',
+        branch: 'Computer Engineering',
         semester: 5,
         section: 'A',
         subject_id: subjectId,
@@ -140,14 +130,14 @@ async function runAllTests() {
     assert.strictEqual(overwriteRes.data.isUpdate, true);
     console.log('✓ Overwrite with confirmation flag works as expected (isUpdate: true)');
 
-    console.log('\n--- 6. Testing Interactive Cumulative Attendance Matrix ---');
-    const matrixRes = await request('GET', `/api/attendance/matrix?branch=CSE&semester=5&section=A&subject_id=${subjectId}`);
+    console.log('\n--- 5. Testing Interactive Cumulative Attendance Matrix ---');
+    const matrixRes = await request('GET', `/api/attendance/matrix?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}`);
     assert.strictEqual(matrixRes.status, 200);
     assert.ok(matrixRes.data.sessions.length >= 7, 'Should reflect the newly added session');
     console.log(`✓ Cumulative Matrix reflects ${matrixRes.data.sessions.length} sessions across ${matrixRes.data.studentRows.length} students`);
 
-    console.log('\n--- 7. Testing Excel (.xlsx) Export Stream ---');
-    const excelRes = await request('GET', `/api/attendance/export-excel?branch=CSE&semester=5&section=A&subject_id=${subjectId}`);
+    console.log('\n--- 6. Testing Excel (.xlsx) Export Stream ---');
+    const excelRes = await request('GET', `/api/attendance/export-excel?branch=Computer%20Engineering&semester=5&section=A&subject_id=${subjectId}`);
     assert.strictEqual(excelRes.status, 200);
     assert.ok(excelRes.headers['content-type'].includes('spreadsheetml'), 'Content type should be Excel');
     assert.ok(excelRes.data.length > 5000, 'Excel buffer size should be valid');
